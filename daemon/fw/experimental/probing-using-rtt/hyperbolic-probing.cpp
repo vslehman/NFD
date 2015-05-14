@@ -93,7 +93,7 @@ HyperbolicProbingModule::HyperbolicProbingModule(HyperbolicStatistics& stats)
 
 void
 HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                                       const ndn::time::milliseconds& interval)
+                                       const time::milliseconds& interval)
 {
   ndn::Name prefix = fibEntry->getPrefix();
 
@@ -127,10 +127,10 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
     [] (FaceInfoNextHopPair lhs, FaceInfoNextHopPair rhs) {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
-      if (!lhs.first->hasTimedOut && rhs.first->hasTimedOut) {
+      if (lhs.first->rtt != RttStat::RTT_TIMEOUT && rhs.first->rtt == RttStat::RTT_TIMEOUT) {
         return true;
       }
-      else if (lhs.first->hasTimedOut && !rhs.first->hasTimedOut) {
+      else if (lhs.first->rtt == RttStat::RTT_TIMEOUT && rhs.first->rtt != RttStat::RTT_TIMEOUT) {
         return false;
       }
       else {

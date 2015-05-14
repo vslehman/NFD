@@ -26,6 +26,7 @@
 #ifndef NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
 #define NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
 
+#include "fw/rtt-estimator.hpp"
 #include "table/pit.hpp"
 
 namespace nfd {
@@ -40,14 +41,13 @@ public:
   RttStat()
     : srtt(RTT_NO_MEASUREMENT)
     , rtt(RTT_NO_MEASUREMENT)
-    , hasTimedOut(false)
   {
   }
 
 public:
   Rtt srtt;
   Rtt rtt;
-  bool hasTimedOut;
+  RttEstimator rttEstimator;
 
   static const Rtt RTT_TIMEOUT;
   static const Rtt RTT_NO_MEASUREMENT;

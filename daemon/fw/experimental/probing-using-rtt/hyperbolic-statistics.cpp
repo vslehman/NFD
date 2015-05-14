@@ -44,6 +44,7 @@ struct FaceStats
 {
 public:
   shared_ptr<Face> face;
+  Rtt rtt;
   Rtt srtt;
   uint64_t cost;
 };
@@ -59,10 +60,13 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
   FaceStatsSet rankedFaces(
     [] (const FaceStats& lhs, const FaceStats& rhs) {
       // Sort by RTT and then by cost
-      if (lhs.srtt < rhs.srtt) {
+      double lhsRtt = (lhs.rtt == RttStat::RTT_TIMEOUT) ? lhs.rtt : lhs.srtt;
+      double rhsRtt = (rhs.rtt == RttStat::RTT_TIMEOUT) ? rhs.rtt : rhs.srtt;
+
+      if (lhsRtt < rhsRtt) {
         return true;
       }
-      else if (lhs.srtt == rhs.srtt) {
+      else if (lhsRtt == rhsRtt) {
         return lhs.cost < rhs.cost;
       }
       else {
@@ -73,7 +77,7 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
     FaceInfo& info = getOrCreateFaceInfo(fibEntry, *hop.getFace());
 
-    FaceStats stats = {hop.getFace(), info.srtt, hop.getCost()};
+    FaceStats stats = {hop.getFace(), info.rtt, info.srtt, hop.getCost()};
 
     rankedFaces.insert(stats);
   }
@@ -123,7 +127,8 @@ HyperbolicStatistics::afterForwardInterest(const fib::Entry& fibEntry, const Fac
 {
   FaceInfo& info = getOrCreateFaceInfo(fibEntry, face);
 
-  ndn::time::milliseconds timeout = time::seconds(1);
+  // Estimate and schedule timeout
+  RttEstimator::Duration timeout = info.rttEstimator.computeRto();
 
   info.timeoutEventId = scheduler::schedule(timeout,
       bind(&HyperbolicStatistics::onTimeout, this, fibEntry.getPrefix(), face.getId()));
@@ -154,7 +159,7 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
   }
 
   if (record != nullptr) {
-    record->hasTimedOut = true;
+    record->rtt = RttStat::RTT_TIMEOUT;
   }
 }
 

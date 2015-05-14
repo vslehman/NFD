@@ -51,10 +51,10 @@ RttRecorder::record(RttStat& stat,
 
   stat.rtt = static_cast<Rtt>(durationRtt.count());
 
+  stat.rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
+
   // Assign ewma of RTT to face
   stat.srtt = computeSrtt(stat.srtt, stat.rtt);
-
-  stat.hasTimedOut = false;
 
   NFD_LOG_INFO("Recording RTT for " << prefix << " FaceId: " << inFace.getId()
                                               << " RTT: "    << stat.rtt
