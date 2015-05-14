@@ -88,7 +88,8 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
     return it->face;
   }
   else {
-    return nullptr;
+    NFD_LOG_WARN("Could not find best face to forward " << fibEntry.getPrefix());
+    throw std::runtime_error("Could not find best face to forward " + fibEntry.getPrefix().toUri());
   }
 }
 
@@ -142,7 +143,7 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
   shared_ptr<NamespaceInfo> info = getNamespaceInfo(prefix);
 
   if (info == nullptr) {
-    NFD_LOG_WARN("FibEntry for " << prefix << " was removed");
+    NFD_LOG_DEBUG("FibEntry for " << prefix << " was removed");
     return;
   }
 
@@ -160,6 +161,10 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
 
   if (record != nullptr) {
     record->rtt = RttStat::RTT_TIMEOUT;
+  }
+  else {
+    throw std::runtime_error("Could not find or create FaceInfo for " + prefix.toUri() +
+                             " FaceId: " + std::to_string(faceId));
   }
 }
 
