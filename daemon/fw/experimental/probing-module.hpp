@@ -51,10 +51,11 @@ public:
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
-                 const fib::NextHop& hopUsed) = 0;
+                 const Face& faceUsed) = 0;
 
   virtual void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry) = 0;
+  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                const time::milliseconds& interval) = 0;
 
   virtual bool
   isProbingNeeded(shared_ptr<fib::Entry> fibEntry) = 0;

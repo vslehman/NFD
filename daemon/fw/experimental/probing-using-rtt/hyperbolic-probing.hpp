@@ -28,6 +28,7 @@
 
 #include "common.hpp"
 #include "hyperbolic-statistics.hpp"
+#include "../probing-module.hpp"
 #include "table/fib.hpp"
 #include "table/pit.hpp"
 
@@ -39,36 +40,6 @@ namespace nfd {
 namespace fw {
 namespace experimental {
 
-class ProbingModule
-{
-public:
-  ProbingModule(const time::seconds& probingInterval)
-    : m_isProbingNeeded(true)
-    , PROBING_INTERVAL(probingInterval)
-  {
-  }
-
-  virtual shared_ptr<Face>
-  getFaceToProbe(const Face& inFace,
-                 const Interest& interest,
-                 shared_ptr<fib::Entry> fibEntry,
-                 const fib::NextHop& hopUsed) = 0;
-
-  virtual void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                const time::milliseconds& interval) = 0;
-
-  virtual bool
-  isProbingNeeded(shared_ptr<fib::Entry> fibEntry) = 0;
-
-  virtual void
-  afterProbe(shared_ptr<fib::Entry> fibEntry) = 0;
-
-protected:
-  bool m_isProbingNeeded;
-  const time::seconds PROBING_INTERVAL;
-};
-
 /** \brief Hyperbolic Probing Module version 1
  */
 class HyperbolicProbingModule : public ProbingModule
@@ -76,15 +47,15 @@ class HyperbolicProbingModule : public ProbingModule
 public:
   HyperbolicProbingModule(HyperbolicStatistics& stats);
 
-  void
+  virtual void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
                 const time::milliseconds& interval = DEFAULT_PROBING_INTERVAL) DECL_OVERRIDE;
 
-  shared_ptr<Face>
+  virtual shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
-                 const fib::NextHop& hopUsed) DECL_OVERRIDE;
+                 const Face& faceUsed) DECL_OVERRIDE;
 
   bool
   isProbingNeeded(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;

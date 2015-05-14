@@ -80,19 +80,19 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
     return;
   }
 
-  const fib::NextHop* hopToUse = m_stats.getBestNextHop(*fibEntry, inFace);
+  const shared_ptr<Face> faceToUse = m_stats.getBestFace(*fibEntry, inFace);
 
-  if (hopToUse == nullptr) {
+  if (faceToUse == nullptr) {
     NFD_LOG_TRACE("Rejecting Interest: No best face");
     this->rejectPendingInterest(pitEntry);
     return;
   }
 
-  forwardInterest(pitEntry, hopToUse->getFace());
+  forwardInterest(pitEntry, faceToUse);
 
   // If necessary, send probe
   if (m_probe->isProbingNeeded(fibEntry)) {
-    shared_ptr<Face> faceToProbe = m_probe->getFaceToProbe(inFace, interest, fibEntry, *hopToUse);
+    shared_ptr<Face> faceToProbe = m_probe->getFaceToProbe(inFace, interest, fibEntry, *faceToUse);
 
     if (faceToProbe != nullptr) {
       NFD_LOG_DEBUG("Sending probe for " << fibEntry->getPrefix()

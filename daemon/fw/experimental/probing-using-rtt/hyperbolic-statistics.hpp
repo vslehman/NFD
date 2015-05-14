@@ -54,8 +54,8 @@ public:
   void
   beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
 
-  const fib::NextHop*
-  getBestNextHop(const fib::Entry& fibEntry, const Face& inFace);
+  const shared_ptr<Face>
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
 
   virtual void
   afterForwardInterest(const fib::Entry& fibEntry, const Face& face) DECL_OVERRIDE;
