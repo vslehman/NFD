@@ -40,49 +40,62 @@ typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
 
 const time::microseconds HyperbolicStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
+struct NextHopRttPair
+{
+public:
+  const fib::NextHop* hop;
+  Rtt srtt;
+};
+
 const fib::NextHop*
 HyperbolicStatistics::getBestNextHop(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
-  typedef std::pair<const fib::NextHop*, time::microseconds> NextHopRttPair;
-
-  NextHopRttPair candidate = std::make_pair(nullptr, RttStat::RTT_NO_MEASUREMENT);
+  NextHopRttPair candidate = NextHopRttPair{nullptr, RttStat::RTT_NO_MEASUREMENT};
 
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
 
-    NFD_LOG_DEBUG("Checking FaceId: " << hop.getFace()->getId() << " for " << fibEntry.getPrefix());
+    shared_ptr<Face> faceToConsider = hop.getFace();
+
+    NFD_LOG_DEBUG("Trying FaceId: " << faceToConsider->getId() << " for " << fibEntry.getPrefix());
 
     // Don't forward Interest back to the incoming face
-    if (hop.getFace()->getId() == inFace.getId()) {
+    if (faceToConsider->getId() == inFace.getId()) {
       NFD_LOG_DEBUG("Not considering FaceId: " << inFace.getId() << " face == inFace");
       continue;
     }
 
-    FaceInfo& info = getOrCreateFaceInfo(fibEntry, *hop.getFace());
+    FaceInfo& info = getOrCreateFaceInfo(fibEntry, *faceToConsider);
 
+    // Did the previous Interest forwarded using this face timeout?
     if (info.hasTimedOut) {
-      NFD_LOG_DEBUG("Interest sent to " << hop.getFace()->getId() << " for " << fibEntry.getPrefix() <<
-                    " previously timed-out");
+      NFD_LOG_DEBUG("Interest sent to FaceId: " << faceToConsider->getId() <<
+                    " for " << fibEntry.getPrefix() << " previously timed-out");
     }
 
-    if (candidate.first == nullptr) {
+    // Has a candidate not been selected yet?
+    if (candidate.hop == nullptr) {
       if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
-        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with no previous SRTT measurement");
+        NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
+                      " with no previous SRTT measurement");
       }
       else {
-        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with SRTT measurement " << info.srtt);
+        NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
+                      " with SRTT measurement " << info.srtt);
       }
 
-      candidate = std::make_pair(&hop, info.srtt);
-    }
-    else if (!info.hasTimedOut && info.srtt < candidate.second) {
-      NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with SRTT measurement " << info.srtt << " < " << candidate.second);
-      candidate = std::make_pair(&hop, info.srtt);
+      candidate = NextHopRttPair{&hop, info.srtt};
+    } // Did this face not time out on the last Interest and is its SRTT is less than the cadidate's?
+    else if (!info.hasTimedOut && info.srtt < candidate.srtt) {
+      NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
+                    " with SRTT measurement " << info.srtt << " < " << candidate.srtt);
+
+      candidate = NextHopRttPair{&hop, info.srtt};
     }
   }
 
-  return candidate.first;
+  return candidate.hop;
 }
 
 void
