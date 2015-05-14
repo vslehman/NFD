@@ -40,11 +40,12 @@ typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
 
 const time::microseconds HyperbolicStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
-struct FaceRttPair
+struct FaceStats
 {
 public:
   shared_ptr<Face> face;
   Rtt srtt;
+  uint64_t cost;
 };
 
 const shared_ptr<Face>
@@ -52,50 +53,39 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
-  FaceRttPair candidate = FaceRttPair{nullptr, RttStat::RTT_NO_MEASUREMENT};
+  typedef std::function<bool(const FaceStats&, const FaceStats&)> FaceStatsPredicate;
+  typedef std::set<FaceStats, FaceStatsPredicate> FaceStatsSet;
 
-  for (const fib::NextHop& hop : fibEntry.getNextHops()) {
-
-    shared_ptr<Face> faceToConsider = hop.getFace();
-
-    NFD_LOG_DEBUG("Trying FaceId: " << faceToConsider->getId() << " for " << fibEntry.getPrefix());
-
-    // Don't forward Interest back to the incoming face
-    if (faceToConsider->getId() == inFace.getId()) {
-      NFD_LOG_DEBUG("Not considering FaceId: " << inFace.getId() << " face == inFace");
-      continue;
-    }
-
-    FaceInfo& info = getOrCreateFaceInfo(fibEntry, *faceToConsider);
-
-    // Did the previous Interest forwarded using this face timeout?
-    if (info.hasTimedOut) {
-      NFD_LOG_DEBUG("Interest sent to FaceId: " << faceToConsider->getId() <<
-                    " for " << fibEntry.getPrefix() << " previously timed-out");
-    }
-
-    // Has a candidate not been selected yet?
-    if (candidate.face == nullptr) {
-      if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
-        NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
-                      " with no previous SRTT measurement");
+  FaceStatsSet rankedFaces(
+    [] (const FaceStats& lhs, const FaceStats& rhs) {
+      // Sort by RTT and then by cost
+      if (lhs.srtt < rhs.srtt) {
+        return true;
+      }
+      else if (lhs.srtt == rhs.srtt) {
+        return lhs.cost < rhs.cost;
       }
       else {
-        NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
-                      " with SRTT measurement " << info.srtt);
+        return false;
       }
+  });
 
-      candidate = FaceRttPair{hop.getFace(), info.srtt};
-    } // Did this face not time out on the last Interest and is its SRTT is less than the cadidate's?
-    else if (!info.hasTimedOut && info.srtt < candidate.srtt) {
-      NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
-                    " with SRTT measurement " << info.srtt << " < " << candidate.srtt);
+  for (const fib::NextHop& hop : fibEntry.getNextHops()) {
+    FaceInfo& info = getOrCreateFaceInfo(fibEntry, *hop.getFace());
 
-      candidate = FaceRttPair{hop.getFace(), info.srtt};
-    }
+    FaceStats stats = {hop.getFace(), info.srtt, hop.getCost()};
+
+    rankedFaces.insert(stats);
   }
 
-  return candidate.face;
+  FaceStatsSet::iterator it = rankedFaces.begin();
+
+  if (it != rankedFaces.end()) {
+    return it->face;
+  }
+  else {
+    return nullptr;
+  }
 }
 
 void
