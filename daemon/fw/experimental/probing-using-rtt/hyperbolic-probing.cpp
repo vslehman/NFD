@@ -41,6 +41,20 @@ typedef HyperbolicStatistics::FaceInfo FaceInfo;
 typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
 
 //==============================================================================
+// Random Number Generator
+//------------------------------------------------------------------------------
+double
+getRandomNumber(double start, double end)
+{
+  std::random_device rd;
+  std::mt19937 generator(rd());
+  std::uniform_real_distribution<> distribution(start, end);
+
+  return distribution(generator);
+}
+
+
+//==============================================================================
 // Probability Function #1
 //------------------------------------------------------------------------------
 // p = n + 1 - j ; n: # faces
@@ -78,7 +92,8 @@ HyperbolicProbingModule::HyperbolicProbingModule(HyperbolicStatistics& stats)
 }
 
 void
-HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry)
+HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                                       const ndn::time::milliseconds& interval)
 {
   ndn::Name prefix = fibEntry->getPrefix();
 
@@ -94,6 +109,7 @@ HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry)
       return;
     }
     else {
+      NFD_LOG_TRACE("Probing is due for " << prefix);
       info->isProbingNeeded = true;
     }
   });
@@ -160,6 +176,25 @@ HyperbolicProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
   // Return the probing flag status for a namespace
   NamespaceInfo& info = m_stats.getOrCreateNamespaceInfo(*fibEntry);
 
+  // If a first probe has not been scheduled for a namespace
+  if (!info.hasFirstProbeBeenScheduled) {
+    // Schedule first probe at random interval
+    uint64_t interval = getRandomNumber(0, 5000);
+
+    NFD_LOG_DEBUG("Scheduling first probe for " << fibEntry->getPrefix() <<
+                  " in " << interval << " ms");
+
+    // If the probe is scheduled for now, probe immediately
+    if (interval == 0) {
+      info.isProbingNeeded = true;
+    }
+    else {
+      scheduleProbe(fibEntry, time::milliseconds(interval));
+    }
+
+    info.hasFirstProbeBeenScheduled = true;
+  }
+
   return info.isProbingNeeded;
 }
 
@@ -177,12 +212,7 @@ HyperbolicProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 shared_ptr<Face>
 HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet& rankedFaces)
 {
-  // Pick random number
-  std::random_device rd;
-  std::mt19937 generator(rd());
-  std::uniform_real_distribution<> distribution(0, 1);
-
-  double randomNumber = distribution(generator);
+  double randomNumber = getRandomNumber(0, 1);
 
   uint64_t rankSum = ((rankedFaces.size() + 1)*(rankedFaces.size()))/2;
   uint64_t rank = 1;

@@ -81,7 +81,8 @@ public:
   {
   public:
     NamespaceInfo()
-      : isProbingNeeded(true)
+      : isProbingNeeded(false)
+      , hasFirstProbeBeenScheduled(false)
     {
     }
 
@@ -94,6 +95,7 @@ public:
   public:
     FaceInfoMap faceInfo;
     bool isProbingNeeded;
+    bool hasFirstProbeBeenScheduled;
   };
 
 public:

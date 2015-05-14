@@ -27,6 +27,7 @@
 #define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STRATEGY_HPP
 
 #include "hyperbolic-statistics.hpp"
+#include "fw/retx-suppression-fixed.hpp"
 #include "fw/strategy.hpp"
 
 #include <unordered_set>
@@ -72,8 +73,11 @@ private:
   HyperbolicStatistics m_stats;
   std::unique_ptr<ProbingModule> m_probe;
 
+  RetxSuppressionFixed m_retxSuppression;
+
 public:
   static const Name STRATEGY_NAME;
+  static const time::seconds SUPPRESSION_TIME;
 };
 
 } // namespace experimental

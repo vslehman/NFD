@@ -35,12 +35,15 @@ namespace experimental {
 NFD_LOG_INIT("HyperbolicStrategy");
 
 const Name HyperbolicStrategy::STRATEGY_NAME("ndn:/localhost/nfd/strategy/hyperbolic/%FD%01");
+const time::seconds HyperbolicStrategy::SUPPRESSION_TIME = time::seconds(2);
+
 NFD_REGISTER_STRATEGY(HyperbolicStrategy);
 
 HyperbolicStrategy::HyperbolicStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
   , m_stats(this->getMeasurements())
   , m_probe(std::unique_ptr<ProbingModule>(new HyperbolicProbingModule(m_stats)))
+  , m_retxSuppression(SUPPRESSION_TIME)
 {
 }
 
@@ -56,6 +59,19 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
 {
   NFD_LOG_TRACE("Received Interest " << interest.getName() << " nonce=" << interest.getNonce());
 
+  // Should the Interest be suppressed?
+  RetxSuppression::Result suppressResult = m_retxSuppression.decide(inFace, interest, *pitEntry);
+
+  switch (suppressResult) {
+  case RetxSuppression::NEW:
+  case RetxSuppression::FORWARD:
+    break;
+  case RetxSuppression::SUPPRESS:
+    NFD_LOG_DEBUG(interest << " interestFrom " << inFace.getId() << " retx-suppress");
+    return;
+  }
+
+
   const fib::NextHopList& nexthops = fibEntry->getNextHops();
 
   if (nexthops.size() == 0) {
@@ -69,13 +85,6 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
   if (hopToUse == nullptr) {
     NFD_LOG_TRACE("Rejecting Interest: No best face");
     this->rejectPendingInterest(pitEntry);
-    return;
-  }
-
-  // Do not forward Interest if this face has been used to forward this Interest previously
-  pit::OutRecordCollection::const_iterator outRecord = pitEntry->getOutRecord(*hopToUse->getFace());
-  if (outRecord != pitEntry->getOutRecords().end()) {
-    NFD_LOG_DEBUG("Interest has already been forwarded; returning");
     return;
   }
 
