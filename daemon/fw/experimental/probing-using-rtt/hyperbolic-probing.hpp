@@ -55,7 +55,8 @@ public:
                  const fib::NextHop& hopUsed) = 0;
 
   virtual void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry) = 0;
+  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                const time::milliseconds& interval) = 0;
 
   virtual bool
   isProbingNeeded(shared_ptr<fib::Entry> fibEntry) = 0;
@@ -76,7 +77,8 @@ public:
   HyperbolicProbingModule(HyperbolicStatistics& stats);
 
   void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;
+  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                const time::milliseconds& interval = DEFAULT_PROBING_INTERVAL) DECL_OVERRIDE;
 
   shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
