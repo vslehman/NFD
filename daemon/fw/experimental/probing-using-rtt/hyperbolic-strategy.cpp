@@ -79,6 +79,12 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
     this->rejectPendingInterest(pitEntry);
     return;
   }
+  else if (nexthops.size() == 1 && nexthops.front().getFace()->getId() == inFace.getId()) {
+    // If the only nexthop that exists is the one the Interest was received on, reject
+    NFD_LOG_TRACE("Rejecting Interest: inFace is the only nexthop for " << fibEntry->getPrefix());
+    this->rejectPendingInterest(pitEntry);
+    return;
+  }
 
   const shared_ptr<Face> faceToUse = m_stats.getBestFace(*fibEntry, inFace);
 
