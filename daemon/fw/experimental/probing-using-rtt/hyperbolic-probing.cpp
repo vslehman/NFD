@@ -101,11 +101,11 @@ HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
 
   // Set the probing flag for the namespace to true after PROBING_INTERVAL
   // period of time
-  scheduler::schedule(PROBING_INTERVAL, [this, prefix] () {
+  scheduler::schedule(interval, [this, prefix] () {
     shared_ptr<NamespaceInfo> info = this->m_stats.getNamespaceInfo(prefix);
 
     if (info == nullptr) {
-      NFD_LOG_WARN("FibEntry for " << prefix << " has been removed");
+      NFD_LOG_DEBUG("FibEntry for " << prefix << " has been removed");
       return;
     }
     else {
