@@ -26,7 +26,7 @@
 #include "hyperbolic-probing.hpp"
 
 #include "hyperbolic-statistics.hpp"
-#include "rtt-recorder.hpp"
+#include "../rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 
 #include <random>
