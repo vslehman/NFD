@@ -31,7 +31,7 @@ namespace experimental {
 
 NFD_LOG_INIT("RttRecorder");
 
-const time::microseconds RttStat::RTT_NO_MEASUREMENT = time::microseconds::max();
+const Rtt RttStat::RTT_NO_MEASUREMENT = time::microseconds::max().count();
 
 const double RttRecorder::ALPHA = 0.125;
 
@@ -45,31 +45,31 @@ RttRecorder::record(RttStat& stat,
 
   // Calculate RTT
   pit::OutRecordCollection::const_iterator outRecord = pitEntry->getOutRecord(inFace);
-  time::microseconds rtt =
-    time::duration_cast<time::microseconds>(time::steady_clock::now() - outRecord->getLastRenewed());
+  time::steady_clock::Duration steadyRtt = time::steady_clock::now() - outRecord->getLastRenewed();
+  RttRecorder::Duration durationRtt = time::duration_cast<RttRecorder::Duration>(steadyRtt);
 
-  stat.lastRtt = rtt;
+  stat.rtt = static_cast<Rtt>(durationRtt.count());
 
   // Assign ewma of RTT to face
-  stat.srtt = computeSrtt(stat, time::duration_cast<time::microseconds>(rtt));
+  stat.srtt = computeSrtt(stat.srtt, stat.rtt);
 
   stat.hasTimedOut = false;
 
   NFD_LOG_INFO("Recording RTT for " << prefix << " FaceId: " << inFace.getId()
-                                              << " RTT: "    << rtt.count()
-                                              << " SRTT: "   << stat.srtt.count());
+                                              << " RTT: "    << stat.rtt
+                                              << " SRTT: "   << stat.srtt);
 }
 
-time::microseconds
-RttRecorder::computeSrtt(const RttStat& stat, const time::microseconds& currentRtt)
+Rtt
+RttRecorder::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
 {
-  if (stat.srtt == RttStat::RTT_NO_MEASUREMENT) {
+  if (previousSrtt == RttStat::RTT_NO_MEASUREMENT) {
     return currentRtt;
   }
 
-  long rtt = ALPHA*currentRtt.count() + (1 - ALPHA)*stat.srtt.count();
+  Rtt srtt = ALPHA*currentRtt + (1 - ALPHA)*previousSrtt;
 
-  return time::microseconds(rtt);
+  return srtt;
 }
 
 } // namespace experimental

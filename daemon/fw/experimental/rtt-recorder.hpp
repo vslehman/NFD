@@ -32,22 +32,24 @@ namespace nfd {
 namespace fw {
 namespace experimental {
 
+typedef double Rtt;
+
 class RttStat
 {
 public:
   RttStat()
     : srtt(RTT_NO_MEASUREMENT)
-    , lastRtt(RTT_NO_MEASUREMENT)
+    , rtt(RTT_NO_MEASUREMENT)
     , hasTimedOut(false)
   {
   }
 
 public:
-  time::microseconds srtt;
-  time::microseconds lastRtt;
+  Rtt srtt;
+  Rtt rtt;
   bool hasTimedOut;
 
-  static const time::microseconds RTT_NO_MEASUREMENT;
+  static const double RTT_NO_MEASUREMENT;
 };
 
 class RttRecorder
@@ -59,9 +61,12 @@ public:
          const ndn::Name& prefix,
          const Face& inFace);
 
+public:
+  typedef time::microseconds Duration;
+
 private:
-  time::microseconds
-  computeSrtt(const RttStat& stat, const time::microseconds& currentRtt);
+  double
+  computeSrtt(double previousSrtt, double currentRtt);
 
   static const double ALPHA;
 
