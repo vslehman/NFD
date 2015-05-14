@@ -124,7 +124,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
   NFD_LOG_TRACE("Looking for face to probe " << fibEntry->getPrefix());
 
   FaceInfoNextHopPairSet rankedFaces(
-    [] (FaceInfoNextHopPair lhs, FaceInfoNextHopPair rhs) {
+    [] (FaceInfoNextHopPair lhs, FaceInfoNextHopPair rhs) -> bool {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
       if (lhs.first->rtt != RttStat::RTT_TIMEOUT && rhs.first->rtt == RttStat::RTT_TIMEOUT) {
