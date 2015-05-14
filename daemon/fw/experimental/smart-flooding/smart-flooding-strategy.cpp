@@ -23,13 +23,14 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "probing-module.hpp"
-#include "statistics-module.hpp"
-#include "strategy-base.hpp"
+#include "../probing-module.hpp"
+#include "../statistics-module.hpp"
+#include "../strategy-base.hpp"
 
 namespace nfd {
 namespace fw {
 namespace experimental {
+namespace smart_flooding {
 
 NFD_LOG_INIT("SmartFloodingStrategy");
 
@@ -236,6 +237,7 @@ SmartFloodingStrategy::beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEnt
 {
 }
 
+} // namespace smart_flooding
 } // namespace experimental
 } // namespace fw
 } // namespace nfd

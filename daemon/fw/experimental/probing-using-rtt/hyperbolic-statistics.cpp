@@ -25,7 +25,7 @@
 
 #include "hyperbolic-statistics.hpp"
 
-#include "rtt-recorder.hpp"
+#include "../rtt-recorder.hpp"
 #include "table/fib-entry.hpp"
 #include "table/measurements-accessor.hpp"
 

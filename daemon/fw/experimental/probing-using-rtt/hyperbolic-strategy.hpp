@@ -27,7 +27,7 @@
 #define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STRATEGY_HPP
 
 #include "hyperbolic-statistics.hpp"
-#include "../strategy.hpp"
+#include "fw/strategy.hpp"
 
 #include <unordered_set>
 #include <unordered_map>

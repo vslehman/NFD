@@ -26,9 +26,9 @@
 #ifndef NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
 #define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
 
-#include "rtt-recorder.hpp"
-#include "../strategy-info.hpp"
-#include "statistics-module.hpp"
+#include "../rtt-recorder.hpp"
+#include "../statistics-module.hpp"
+#include "fw/strategy-info.hpp"
 #include "table/pit.hpp"
 
 namespace nfd {
