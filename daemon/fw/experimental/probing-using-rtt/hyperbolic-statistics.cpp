@@ -131,6 +131,8 @@ HyperbolicStatistics::afterForwardInterest(const fib::Entry& fibEntry, const Fac
   // Estimate and schedule timeout
   RttEstimator::Duration timeout = info.rttEstimator.computeRto();
 
+  NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << face.getId() <<
+                " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
   info.timeoutEventId = scheduler::schedule(timeout,
       bind(&HyperbolicStatistics::onTimeout, this, fibEntry.getPrefix(), face.getId()));
 }
