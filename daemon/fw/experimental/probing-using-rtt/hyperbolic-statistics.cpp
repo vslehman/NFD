@@ -58,7 +58,7 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
   typedef std::set<FaceStats, FaceStatsPredicate> FaceStatsSet;
 
   FaceStatsSet rankedFaces(
-    [] (const FaceStats& lhs, const FaceStats& rhs) {
+    [] (const FaceStats& lhs, const FaceStats& rhs) -> bool {
       // Sort by RTT and then by cost
       double lhsRtt = (lhs.rtt == RttStat::RTT_TIMEOUT) ? lhs.rtt : lhs.srtt;
       double rhsRtt = (rhs.rtt == RttStat::RTT_TIMEOUT) ? rhs.rtt : rhs.srtt;
