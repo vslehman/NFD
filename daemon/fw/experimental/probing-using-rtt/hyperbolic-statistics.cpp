@@ -40,19 +40,19 @@ typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
 
 const time::microseconds HyperbolicStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
-struct NextHopRttPair
+struct FaceRttPair
 {
 public:
-  const fib::NextHop* hop;
+  shared_ptr<Face> face;
   Rtt srtt;
 };
 
-const fib::NextHop*
-HyperbolicStatistics::getBestNextHop(const fib::Entry& fibEntry, const Face& inFace)
+const shared_ptr<Face>
+HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
-  NextHopRttPair candidate = NextHopRttPair{nullptr, RttStat::RTT_NO_MEASUREMENT};
+  FaceRttPair candidate = FaceRttPair{nullptr, RttStat::RTT_NO_MEASUREMENT};
 
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
 
@@ -75,7 +75,7 @@ HyperbolicStatistics::getBestNextHop(const fib::Entry& fibEntry, const Face& inF
     }
 
     // Has a candidate not been selected yet?
-    if (candidate.hop == nullptr) {
+    if (candidate.face == nullptr) {
       if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
         NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
                       " with no previous SRTT measurement");
@@ -85,17 +85,17 @@ HyperbolicStatistics::getBestNextHop(const fib::Entry& fibEntry, const Face& inF
                       " with SRTT measurement " << info.srtt);
       }
 
-      candidate = NextHopRttPair{&hop, info.srtt};
+      candidate = FaceRttPair{hop.getFace(), info.srtt};
     } // Did this face not time out on the last Interest and is its SRTT is less than the cadidate's?
     else if (!info.hasTimedOut && info.srtt < candidate.srtt) {
       NFD_LOG_DEBUG("Considering FaceId: " << faceToConsider->getId() <<
                     " with SRTT measurement " << info.srtt << " < " << candidate.srtt);
 
-      candidate = NextHopRttPair{&hop, info.srtt};
+      candidate = FaceRttPair{hop.getFace(), info.srtt};
     }
   }
 
-  return candidate.hop;
+  return candidate.face;
 }
 
 void

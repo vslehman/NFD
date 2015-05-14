@@ -57,8 +57,8 @@ public:
   }
 
 public:
-  virtual const fib::NextHop*
-  getBestNextHop(const fib::Entry& fibEntry, const Face& inFace) = 0;
+  virtual const shared_ptr<Face>
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace) = 0;
 
 };
 

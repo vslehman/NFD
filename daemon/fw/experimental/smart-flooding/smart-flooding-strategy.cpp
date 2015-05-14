@@ -68,8 +68,8 @@ public:
   };
 
 public:
-  virtual const fib::NextHop*
-  getBestNextHop(const fib::Entry& fibEntry, const Face& inFace)
+  virtual const shared_ptr<Face>
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace)
   {
     shared_ptr<measurements::Entry> entry = m_measurements.get(fibEntry);
     shared_ptr<NamespaceInfo> info = entry->getOrCreateStrategyInfo<NamespaceInfo>();
@@ -90,7 +90,7 @@ public:
     for (const fib::NextHop& hop : fibEntry.getNextHops()) {
       if (hop.getFace()->getId() == info->bestFace) {
         NFD_LOG_DEBUG("Found next hop with best face for " << fibEntry.getPrefix());
-        return &hop;
+        return hop.getFace();
       }
     }
 
@@ -189,9 +189,9 @@ SmartFloodingStrategy::afterReceiveInterest(const Face& inFace,
     return;
   }
 
-  const fib::NextHop* hopToUse = m_stats->getBestNextHop(*fibEntry, inFace);
+  const shared_ptr<Face> faceToUse = m_stats->getBestFace(*fibEntry, inFace);
 
-  if (hopToUse == nullptr) {
+  if (faceToUse == nullptr) {
     NFD_LOG_TRACE("No known best face; Flooding");
 
     // Flood to all interfaces except incoming interface
@@ -202,13 +202,13 @@ SmartFloodingStrategy::afterReceiveInterest(const Face& inFace,
     }
   }
   else {
-    NFD_LOG_DEBUG("Forwarding Interest using FaceId: " << hopToUse->getFace()->getId());
-    this->sendInterest(pitEntry, hopToUse->getFace());
+    NFD_LOG_DEBUG("Forwarding Interest using FaceId: " << faceToUse->getId());
+    this->sendInterest(pitEntry, faceToUse);
   }
 
   // If necessary, send probe
   if (m_probe != nullptr && m_probe->isProbingNeeded(fibEntry)) {
-    shared_ptr<Face> faceToProbe = m_probe->getFaceToProbe(inFace, interest, fibEntry, *hopToUse);
+    shared_ptr<Face> faceToProbe = m_probe->getFaceToProbe(inFace, interest, fibEntry, *faceToUse);
 
     if (faceToProbe != nullptr) {
       NFD_LOG_DEBUG("Sending probe for " << fibEntry->getPrefix()

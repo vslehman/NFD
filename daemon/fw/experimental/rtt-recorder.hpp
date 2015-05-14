@@ -49,7 +49,8 @@ public:
   Rtt rtt;
   bool hasTimedOut;
 
-  static const double RTT_NO_MEASUREMENT;
+  static const Rtt RTT_TIMEOUT;
+  static const Rtt RTT_NO_MEASUREMENT;
 };
 
 class RttRecorder

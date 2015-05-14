@@ -119,7 +119,7 @@ shared_ptr<Face>
 HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
                                         const Interest& interest,
                                         shared_ptr<fib::Entry> fibEntry,
-                                        const fib::NextHop& hopUsed)
+                                        const Face& faceUsed)
 {
   NFD_LOG_TRACE("Looking for face to probe " << fibEntry->getPrefix());
 
@@ -145,7 +145,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
     // Don't send probe Interest back to the incoming face or use the same face
     // as the forwarded Interest
     if (hop.getFace()->getId() == inFace.getId() ||
-        hop.getFace()->getId() == hopUsed.getFace()->getId())
+        hop.getFace()->getId() == faceUsed.getId())
     {
       continue;
     }
