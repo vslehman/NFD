@@ -142,6 +142,8 @@ HyperbolicStatistics::afterForwardInterest(const fib::Entry& fibEntry, const Fac
 void
 HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
 {
+  NFD_LOG_INFO("FaceId: " << faceId << " for " << prefix << " has timed-out");
+
   shared_ptr<NamespaceInfo> info = getNamespaceInfo(prefix);
 
   if (info == nullptr) {
@@ -162,7 +164,6 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
   }
 
   if (record != nullptr) {
-    NFD_LOG_INFO("FaceId: " << faceId << " for " << prefix << " has timed-out");
     record->hasTimedOut = true;
   }
 }
@@ -202,7 +203,7 @@ HyperbolicStatistics::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
 shared_ptr<NamespaceInfo>
 HyperbolicStatistics::getNamespaceInfo(const ndn::Name& prefix)
 {
-  shared_ptr<measurements::Entry> me = m_measurements.get(prefix);
+  shared_ptr<measurements::Entry> me = m_measurements.findLongestPrefixMatch(prefix);
 
   if (me == nullptr) {
     NFD_LOG_WARN("Could not find measurements entry for " << prefix);
