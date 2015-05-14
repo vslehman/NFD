@@ -23,8 +23,8 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_SMART_FLOODING_STRATEGY_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_SMART_FLOODING_STRATEGY_HPP
+#ifndef NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_BASE_HPP
+#define NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_BASE_HPP
 
 #include "../strategy.hpp"
 
@@ -35,40 +35,47 @@ namespace experimental {
 class ProbingModule;
 class StatisticsModule;
 
-/** \brief Smart Flooding Strategy
+/** \brief Strategy Base
  */
-class SmartFloodingStrategy : public Strategy
+class StrategyBase : public Strategy
 {
 public:
-  SmartFloodingStrategy(Forwarder& forwarder, const Name& name = STRATEGY_NAME);
+  StrategyBase(Forwarder& forwarder,
+               const Name& name,
+               StatisticsModule* stats,
+               ProbingModule* probe)
+    : Strategy(forwarder, name)
+    , m_stats(stats)
+    , m_probe(probe)
+  {
+  }
 
   virtual
-  ~SmartFloodingStrategy();
+  ~StrategyBase()
+  {
+  }
 
 public: // triggers
   virtual void
   afterReceiveInterest(const Face& inFace,
                        const Interest& interest,
                        shared_ptr<fib::Entry> fibEntry,
-                       shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
+                       shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE = 0;
 
   virtual void
   beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
-                        const Face& inFace, const Data& data) DECL_OVERRIDE;
+                        const Face& inFace, const Data& data) DECL_OVERRIDE = 0;
 
   virtual void
-  beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
+  beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE = 0;
 
-private:
+protected:
   std::unique_ptr<StatisticsModule> m_stats;
   std::unique_ptr<ProbingModule> m_probe;
-
-public:
-  static const Name STRATEGY_NAME;
 };
 
 } // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_SMART_FLOODING_STRATEGY_HPP
+#endif // NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_BASE

@@ -36,17 +36,18 @@ class RttStat
 {
 public:
   RttStat()
-    : rtt(RTT_NO_MEASUREMENT)
+    : srtt(RTT_NO_MEASUREMENT)
+    , lastRtt(RTT_NO_MEASUREMENT)
     , hasTimedOut(false)
   {
   }
 
 public:
-  time::microseconds rtt;
+  time::microseconds srtt;
+  time::microseconds lastRtt;
   bool hasTimedOut;
 
   static const time::microseconds RTT_NO_MEASUREMENT;
-  static const time::microseconds RTT_TIMEOUT;
 };
 
 class RttRecorder

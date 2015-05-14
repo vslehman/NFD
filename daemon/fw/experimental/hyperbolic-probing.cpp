@@ -118,7 +118,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
         return false;
       }
       else {
-        return lhs.first->rtt < rhs.first->rtt;
+        return lhs.first->srtt < rhs.first->srtt;
       }
   });
 
@@ -137,7 +137,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
     FaceInfo& info = m_stats.getOrCreateFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
-    if (info.rtt == RttStat::RTT_NO_MEASUREMENT) {
+    if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
       NFD_LOG_DEBUG("Found face to probe with no RTT measurement");
       return hop.getFace();
     }
