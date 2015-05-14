@@ -75,6 +75,11 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
   });
 
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
+
+    if (hop.getFace()->getId() == inFace.getId()) {
+      continue;
+    }
+
     FaceInfo& info = getOrCreateFaceInfo(fibEntry, *hop.getFace());
 
     FaceStats stats = {hop.getFace(), info.rtt, info.srtt, hop.getCost()};
