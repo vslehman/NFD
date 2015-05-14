@@ -23,16 +23,19 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "smart-flooding-strategy.hpp"
-
 #include "probing-module.hpp"
 #include "statistics-module.hpp"
+#include "strategy-base.hpp"
 
 namespace nfd {
 namespace fw {
 namespace experimental {
 
 NFD_LOG_INIT("SmartFloodingStrategy");
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// STATISTICS
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class SmartFloodingStatistics : public StatisticsModule
 {
@@ -130,19 +133,44 @@ private:
 const time::seconds SmartFloodingStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// STRATEGY DECLARATION
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const Name SmartFloodingStrategy::STRATEGY_NAME("ndn:/localhost/nfd/strategy/smart-flooding/%FD%01");
+class SmartFloodingStrategy : public StrategyBase
+{
+public:
+  SmartFloodingStrategy(Forwarder& forwarder, const Name& name);
+
+  virtual void
+  afterReceiveInterest(const Face& inFace,
+                       const Interest& interest,
+                       shared_ptr<fib::Entry> fibEntry,
+                       shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
+
+  virtual void
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
+                        const Face& inFace, const Data& data) DECL_OVERRIDE;
+
+  virtual void
+  beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
+
+public:
+  static const ndn::Name STRATEGY_NAME;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// STRATEGY IMPLEMENTATION
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const ndn::Name SmartFloodingStrategy::STRATEGY_NAME = "ndn:/localhost/nfd/strategy/smart-flooding/%FD%01";
+
 NFD_REGISTER_STRATEGY(SmartFloodingStrategy);
 
-SmartFloodingStrategy::SmartFloodingStrategy(Forwarder& forwarder, const Name& name)
-  : Strategy(forwarder, name)
-  , m_stats(new SmartFloodingStatistics(this->getMeasurements()))
-  , m_probe(nullptr)
-{
-}
-
-SmartFloodingStrategy::~SmartFloodingStrategy()
+SmartFloodingStrategy::SmartFloodingStrategy(Forwarder& forwarder, const Name& name = STRATEGY_NAME)
+  : StrategyBase(forwarder,
+                 name,
+                 new SmartFloodingStatistics(this->getMeasurements()),
+                 nullptr)
 {
 }
 

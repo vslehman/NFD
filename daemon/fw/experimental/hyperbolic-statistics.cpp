@@ -67,18 +67,18 @@ HyperbolicStatistics::getBestNextHop(const fib::Entry& fibEntry, const Face& inF
     }
 
     if (candidate.first == nullptr) {
-      if (info.rtt == RttStat::RTT_NO_MEASUREMENT) {
-        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with no previous srtt measurement");
+      if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
+        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with no previous SRTT measurement");
       }
       else {
-        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with srtt measurement " << info.rtt);
+        NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with SRTT measurement " << info.srtt);
       }
 
-      candidate = std::make_pair(&hop, info.rtt);
+      candidate = std::make_pair(&hop, info.srtt);
     }
-    else if (!info.hasTimedOut && info.rtt < candidate.second) {
-      NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with srtt measurement " << info.rtt << " < " << candidate.second);
-      candidate = std::make_pair(&hop, info.rtt);
+    else if (!info.hasTimedOut && info.srtt < candidate.second) {
+      NFD_LOG_DEBUG("Considering face " << hop.getFace()->getId() << " with SRTT measurement " << info.srtt << " < " << candidate.second);
+      candidate = std::make_pair(&hop, info.srtt);
     }
   }
 
