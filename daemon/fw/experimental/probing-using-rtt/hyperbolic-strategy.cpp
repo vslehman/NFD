@@ -54,7 +54,7 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
                                          shared_ptr<fib::Entry> fibEntry,
                                          shared_ptr<pit::Entry> pitEntry)
 {
-  NFD_LOG_TRACE("Received Interest " << interest.getName());
+  NFD_LOG_TRACE("Received Interest " << interest.getName() << " nonce=" << interest.getNonce());
 
   const fib::NextHopList& nexthops = fibEntry->getNextHops();
 
@@ -69,6 +69,13 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
   if (hopToUse == nullptr) {
     NFD_LOG_TRACE("Rejecting Interest: No best face");
     this->rejectPendingInterest(pitEntry);
+    return;
+  }
+
+  // Do not forward Interest if this face has been used to forward this Interest previously
+  pit::OutRecordCollection::const_iterator outRecord = pitEntry->getOutRecord(*hopToUse->getFace());
+  if (outRecord != pitEntry->getOutRecords().end()) {
+    NFD_LOG_DEBUG("Interest has already been forwarded; returning");
     return;
   }
 
