@@ -65,7 +65,8 @@ public: // triggers
 
 private:
   void
-  forwardInterest(shared_ptr<pit::Entry> pitEntry,
+  forwardInterest(const fib::Entry& fibEntry,
+                  shared_ptr<pit::Entry> pitEntry,
                   shared_ptr<Face> outFace,
                   bool wantNewNonce = false);
 
