@@ -23,67 +23,50 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
-
-#include "../rtt-recorder.hpp"
-#include "fw/strategy-info.hpp"
+#include "strategy-measurements.hpp"
 
 namespace nfd {
 namespace fw {
 namespace experimental {
 
-/** \brief Strategy information for each face in a namespace
-*/
-class FaceInfo : public RttStat
+NFD_LOG_INIT("StrategyMeasurements");
+
+const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(30);
+
+FaceInfo&
+NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
-public:
-  FaceInfo();
+  FaceInfoMap::iterator it = faceInfoMap.find(face.getId());
 
-public:
-  // Timeout associated with Interest
-  scheduler::EventId timeoutEventId;
+  FaceInfo* info;
 
-  // Timeout associated with measurement
-  scheduler::EventId measurementExpirationId;
-
-  static const time::seconds MEASUREMENT_LIFETIME;
-};
-
-typedef uint64_t FaceId;
-typedef std::unordered_map<FaceId, FaceInfo> FaceInfoMap;
-
-/** \brief stores stategy information about each face in this namespace
- */
-class NamespaceInfo : public StrategyInfo
-{
-public:
-  NamespaceInfo()
-    : isProbingNeeded(false)
-    , hasFirstProbeBeenScheduled(false)
-  {
+  if (it == faceInfoMap.end()) {
+    const auto& pair = faceInfoMap.insert(std::make_pair(face.getId(), FaceInfo()));
+    info = &pair.first->second;
+  }
+  else {
+    info = &it->second;
   }
 
-  static constexpr int
-  getTypeId()
-  {
-    return 9898;
-  }
+  // Cancel previous expiration
+  scheduler::cancel(info->measurementExpirationId);
 
-  FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
+  // Refresh measurement
+  scheduler::EventId id = scheduler::schedule(FaceInfo::MEASUREMENT_LIFETIME,
+    bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
 
-  void
-  expireFaceInfo(FaceId faceId);
+  info->measurementExpirationId = id;
 
-public:
-  FaceInfoMap faceInfoMap;
-  bool isProbingNeeded;
-  bool hasFirstProbeBeenScheduled;
-};
+  return *info;
+}
+
+void
+NamespaceInfo::expireFaceInfo(FaceId faceId)
+{
+  NFD_LOG_DEBUG("Measurements for FaceId: " << faceId << " have expired");
+  faceInfoMap.erase(faceId);
+}
 
 } // namespace experimental
 } // namespace fw
 } // namespace nfd
-
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
