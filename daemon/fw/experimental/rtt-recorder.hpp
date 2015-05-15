@@ -26,7 +26,7 @@
 #ifndef NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
 #define NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
 
-#include "fw/rtt-estimator.hpp"
+#include "tcp-rtt-estimator.hpp"
 #include "table/pit.hpp"
 
 namespace nfd {
