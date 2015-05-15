@@ -35,9 +35,6 @@ namespace experimental {
 
 NFD_LOG_INIT("HyperbolicStatistics");
 
-typedef HyperbolicStatistics::FaceInfo FaceInfo;
-typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
-
 const time::microseconds HyperbolicStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
 struct FaceStats

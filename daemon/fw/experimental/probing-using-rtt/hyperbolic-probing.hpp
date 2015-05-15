@@ -28,6 +28,7 @@
 
 #include "common.hpp"
 #include "hyperbolic-statistics.hpp"
+#include "strategy-measurements.hpp"
 #include "../probing-module.hpp"
 #include "table/fib.hpp"
 #include "table/pit.hpp"
@@ -65,7 +66,7 @@ public:
 
 private:
   // Used to associate FaceInfo with the face in a NextHop
-  typedef std::pair<shared_ptr<HyperbolicStatistics::FaceInfo>, const fib::NextHop&> FaceInfoNextHopPair;
+  typedef std::pair<shared_ptr<FaceInfo>, const fib::NextHop&> FaceInfoNextHopPair;
   typedef std::function<bool(FaceInfoNextHopPair, FaceInfoNextHopPair)> FaceInfoPredicate;
   typedef std::set<FaceInfoNextHopPair, FaceInfoPredicate> FaceInfoNextHopPairSet;
 
