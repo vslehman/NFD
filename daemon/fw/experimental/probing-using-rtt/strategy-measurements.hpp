@@ -23,67 +23,55 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
+#ifndef NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
+#define NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
 
 #include "../rtt-recorder.hpp"
-#include "../statistics-module.hpp"
-#include "strategy-measurements.hpp"
 #include "fw/strategy-info.hpp"
-#include "table/pit.hpp"
 
 namespace nfd {
-
-class MeasurementsAccessor;
-
-namespace fib {
-class Entry;
-class NextHop;
-}
-
 namespace fw {
 namespace experimental {
 
-class HyperbolicStatistics : public StatisticsModule
+/** \brief Strategy information for each face in a namespace
+*/
+class FaceInfo : public RttStat
 {
 public:
-  HyperbolicStatistics(MeasurementsAccessor& measurements)
-    : m_measurements(measurements)
+  FaceInfo();
+
+public:
+  scheduler::EventId timeoutEventId;
+};
+
+typedef uint64_t FaceId;
+typedef std::unordered_map<FaceId, FaceInfo> FaceInfoMap;
+
+/** \brief stores stategy information about each face in this namespace
+ */
+class NamespaceInfo : public StrategyInfo
+{
+public:
+  NamespaceInfo()
+    : isProbingNeeded(false)
+    , hasFirstProbeBeenScheduled(false)
   {
   }
 
-  void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
-
-  const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
-
-  virtual void
-  afterForwardInterest(const fib::Entry& fibEntry, const Face& face) DECL_OVERRIDE;
+  static constexpr int
+  getTypeId()
+  {
+    return 9898;
+  }
 
 public:
-  FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
-
-  NamespaceInfo&
-  getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
-
-  shared_ptr<NamespaceInfo>
-  getNamespaceInfo(const ndn::Name& prefix);
-
-private:
-  void
-  onTimeout(const ndn::Name& prefix, FaceId faceId);
-
-private:
-  RttRecorder m_rttRecorder;
-  MeasurementsAccessor& m_measurements;
-
-  static const time::microseconds MEASUREMENTS_LIFETIME;
+  FaceInfoMap faceInfo;
+  bool isProbingNeeded;
+  bool hasFirstProbeBeenScheduled;
 };
 
 } // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
+#endif // NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP

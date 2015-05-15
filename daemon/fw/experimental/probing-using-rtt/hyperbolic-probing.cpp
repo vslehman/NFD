@@ -37,9 +37,6 @@ namespace experimental {
 
 NFD_LOG_INIT("HyperbolicProbing");
 
-typedef HyperbolicStatistics::FaceInfo FaceInfo;
-typedef HyperbolicStatistics::NamespaceInfo NamespaceInfo;
-
 //==============================================================================
 // Random Number Generator
 //------------------------------------------------------------------------------
