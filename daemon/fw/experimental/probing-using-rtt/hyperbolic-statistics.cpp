@@ -117,7 +117,7 @@ HyperbolicStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   BOOST_ASSERT(info != nullptr);
 
   // Get info associated with the face
-  FaceInfo& face = info->faceInfo.at(inFace.getId());
+  FaceInfo& face = info->faceInfoMap.at(inFace.getId());
 
   m_rttRecorder.record(face, pitEntry, me->getName(), inFace);
 
@@ -151,12 +151,12 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
     return;
   }
 
-  FaceInfoMap::iterator it = info->faceInfo.find(faceId);
+  FaceInfoMap::iterator it = info->faceInfoMap.find(faceId);
 
   FaceInfo* record;
 
-  if (it == info->faceInfo.end()) {
-    const auto& pair = info->faceInfo.insert(std::make_pair(faceId, FaceInfo()));
+  if (it == info->faceInfoMap.end()) {
+    const auto& pair = info->faceInfoMap.insert(std::make_pair(faceId, FaceInfo()));
     record = &pair.first->second;
   }
   else {
@@ -177,17 +177,7 @@ HyperbolicStatistics::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face
 {
   NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
 
-  FaceInfoMap::iterator it = info.faceInfo.find(face.getId());
-
-  if (it == info.faceInfo.end()) {
-    FaceInfo record;
-
-    const auto& pair = info.faceInfo.insert(std::make_pair(face.getId(), std::move(record)));
-    return pair.first->second;
-  }
-  else {
-    return it->second;
-  }
+  return info.getOrCreateFaceInfo(fibEntry, face);
 }
 
 NamespaceInfo&
