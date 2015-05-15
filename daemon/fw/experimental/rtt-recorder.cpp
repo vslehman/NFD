@@ -31,8 +31,8 @@ namespace experimental {
 
 NFD_LOG_INIT("RttRecorder");
 
-const Rtt RttStat::RTT_TIMEOUT = time::microseconds::max().count();
-const Rtt RttStat::RTT_NO_MEASUREMENT = RTT_TIMEOUT - 1;
+const Rtt RttStat::RTT_TIMEOUT = -1;
+const Rtt RttStat::RTT_NO_MEASUREMENT = 0;
 
 const double RttRecorder::ALPHA = 0.125;
 

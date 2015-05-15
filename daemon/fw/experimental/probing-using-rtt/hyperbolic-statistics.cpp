@@ -46,6 +46,25 @@ public:
   uint64_t cost;
 };
 
+// These values allow faces with no measurements to be ranked better than timeouts
+// srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
+static const Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
+static const Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
+
+double
+getValueForSorting(const FaceStats& stats)
+{
+  if (stats.rtt == RttStat::RTT_TIMEOUT) {
+    return SORTING_RTT_TIMEOUT;
+  }
+  else if (stats.rtt == RttStat::RTT_NO_MEASUREMENT) {
+    return SORTING_RTT_NO_MEASUREMENT;
+  }
+  else {
+    return stats.srtt;
+  }
+}
+
 const shared_ptr<Face>
 HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
@@ -57,13 +76,13 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
   FaceStatsSet rankedFaces(
     [] (const FaceStats& lhs, const FaceStats& rhs) -> bool {
       // Sort by RTT and then by cost
-      double lhsRtt = (lhs.rtt == RttStat::RTT_TIMEOUT) ? lhs.rtt : lhs.srtt;
-      double rhsRtt = (rhs.rtt == RttStat::RTT_TIMEOUT) ? rhs.rtt : rhs.srtt;
+      double lhsValue = getValueForSorting(lhs);
+      double rhsValue = getValueForSorting(rhs);
 
-      if (lhsRtt < rhsRtt) {
+      if (lhsValue < rhsValue) {
         return true;
       }
-      else if (lhsRtt == rhsRtt) {
+      else if (lhsValue == rhsValue) {
         return lhs.cost < rhs.cost;
       }
       else {
