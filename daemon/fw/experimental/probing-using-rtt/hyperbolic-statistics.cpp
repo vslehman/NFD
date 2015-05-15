@@ -141,6 +141,7 @@ HyperbolicStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   m_rttRecorder.record(face, pitEntry, me->getName(), inFace);
 
   // Cancel timeout
+  NFD_LOG_DEBUG("Canceling timeout event for " << pitEntry->getName());
   scheduler::cancel(face.timeoutEventId);
 }
 
@@ -148,6 +149,10 @@ void
 HyperbolicStatistics::afterForwardInterest(const fib::Entry& fibEntry, const Face& face)
 {
   FaceInfo& info = getOrCreateFaceInfo(fibEntry, face);
+
+  // Cancel timeout
+  NFD_LOG_DEBUG("Canceling old timeout event for " << fibEntry.getPrefix());
+  scheduler::cancel(info.timeoutEventId);
 
   // Estimate and schedule timeout
   RttEstimator::Duration timeout = info.rttEstimator.computeRto();
