@@ -59,7 +59,9 @@ public:
   getBestFace(const fib::Entry& fibEntry, const Face& inFace);
 
   virtual void
-  afterForwardInterest(const fib::Entry& fibEntry, const Face& face) DECL_OVERRIDE;
+  afterForwardInterest(const Interest& interest,
+                       const fib::Entry& fibEntry,
+                       const Face& face) DECL_OVERRIDE;
 
 public:
   FaceInfo&
@@ -73,7 +75,7 @@ public:
 
 private:
   void
-  onTimeout(const ndn::Name& prefix, FaceId faceId);
+  onTimeout(const ndn::Name& interestName, FaceId faceId);
 
 private:
   RttRecorder m_rttRecorder;

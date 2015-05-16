@@ -40,14 +40,39 @@ class FaceInfo : public RttStat
 public:
   FaceInfo();
 
-public:
-  // Timeout associated with Interest
-  scheduler::EventId timeoutEventId;
+  void
+  setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName);
 
-  // Timeout associated with measurement
+  bool
+  isTimeoutScheduled() const
+  {
+    return m_isTimeoutScheduled;
+  }
+
+  void
+  cancelTimeoutEvent();
+
+  const ndn::Name&
+  getLastInterestName() const
+  {
+    return m_lastInterestName;
+  }
+
+  bool
+  doesNameMatchLastInterest(const ndn::Name& name);
+
+public:
+// Timeout associated with measurement
   scheduler::EventId measurementExpirationId;
 
   static const time::seconds MEASUREMENT_LIFETIME;
+
+private:
+  ndn::Name m_lastInterestName;
+
+  // Timeout associated with Interest
+  scheduler::EventId m_timeoutEventId;
+  bool m_isTimeoutScheduled;
 };
 
 typedef uint64_t FaceId;

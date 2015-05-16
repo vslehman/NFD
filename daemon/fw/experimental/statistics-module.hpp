@@ -52,7 +52,9 @@ public:
   }
 
   virtual void
-  afterForwardInterest(const fib::Entry& fibEntry, const Face& face)
+  afterForwardInterest(const Interest& interest,
+                       const fib::Entry& fibEntry,
+                       const Face& face)
   {
   }
 

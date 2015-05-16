@@ -94,7 +94,7 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
     return;
   }
 
-  forwardInterest(*fibEntry, pitEntry, faceToUse);
+  forwardInterest(interest, *fibEntry, pitEntry, faceToUse);
 
   // If necessary, send probe
   if (m_probe->isProbingNeeded(fibEntry)) {
@@ -105,7 +105,7 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
                                          << " to FaceId: " << faceToProbe->getId());
 
       bool wantNewNonce = true;
-      forwardInterest(*fibEntry, pitEntry, faceToProbe, wantNewNonce);
+      forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, wantNewNonce);
 
       m_probe->afterProbe(fibEntry);
     }
@@ -121,7 +121,8 @@ HyperbolicStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 }
 
 void
-HyperbolicStrategy::forwardInterest(const fib::Entry& fibEntry,
+HyperbolicStrategy::forwardInterest(const Interest& interest,
+                                    const fib::Entry& fibEntry,
                                     shared_ptr<pit::Entry> pitEntry,
                                     shared_ptr<Face> outFace,
                                     bool wantNewNonce)
@@ -129,7 +130,7 @@ HyperbolicStrategy::forwardInterest(const fib::Entry& fibEntry,
   NFD_LOG_DEBUG("Forwarding Interest using FaceId: " << outFace->getId());
   this->sendInterest(pitEntry, outFace, wantNewNonce);
 
-  m_stats.afterForwardInterest(fibEntry, *outFace);
+  m_stats.afterForwardInterest(interest, fibEntry, *outFace);
 }
 
 } // namespace experimental
