@@ -140,38 +140,43 @@ HyperbolicStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 
   m_rttRecorder.record(face, pitEntry, me->getName(), inFace);
 
-  // Cancel timeout
-  NFD_LOG_DEBUG("Canceling timeout event for " << pitEntry->getName());
-  scheduler::cancel(face.timeoutEventId);
+  if (face.isTimeoutScheduled() && face.doesNameMatchLastInterest(data.getName())) {
+    // Cancel timeout
+    NFD_LOG_DEBUG("Canceling timeout event for " << pitEntry->getName());
+    face.cancelTimeoutEvent();
+  }
 }
 
 void
-HyperbolicStatistics::afterForwardInterest(const fib::Entry& fibEntry, const Face& face)
+HyperbolicStatistics::afterForwardInterest(const Interest& interest,
+                                           const fib::Entry& fibEntry,
+                                           const Face& face)
 {
   FaceInfo& info = getOrCreateFaceInfo(fibEntry, face);
 
-  // Cancel timeout
-  NFD_LOG_DEBUG("Canceling old timeout event for " << fibEntry.getPrefix());
-  scheduler::cancel(info.timeoutEventId);
+  if (!info.isTimeoutScheduled()) {
+    // Estimate and schedule timeout
+    RttEstimator::Duration timeout = info.rttEstimator.computeRto();
 
-  // Estimate and schedule timeout
-  RttEstimator::Duration timeout = info.rttEstimator.computeRto();
+    NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << face.getId() <<
+                  " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
 
-  NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << face.getId() <<
-                " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
-  info.timeoutEventId = scheduler::schedule(timeout,
-      bind(&HyperbolicStatistics::onTimeout, this, fibEntry.getPrefix(), face.getId()));
+    scheduler::EventId id = scheduler::schedule(timeout,
+        bind(&HyperbolicStatistics::onTimeout, this, interest.getName(), face.getId()));
+
+    info.setTimeoutEvent(id, interest.getName());
+  }
 }
 
 void
-HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
+HyperbolicStatistics::onTimeout(const ndn::Name& interestName, FaceId faceId)
 {
-  NFD_LOG_INFO("FaceId: " << faceId << " for " << prefix << " has timed-out");
+  NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
 
-  shared_ptr<NamespaceInfo> info = getNamespaceInfo(prefix);
+  shared_ptr<NamespaceInfo> info = getNamespaceInfo(interestName);
 
   if (info == nullptr) {
-    NFD_LOG_DEBUG("FibEntry for " << prefix << " was removed");
+    NFD_LOG_DEBUG("FibEntry for " << interestName << " was removed");
     return;
   }
 
@@ -189,9 +194,19 @@ HyperbolicStatistics::onTimeout(const ndn::Name& prefix, FaceId faceId)
 
   if (record != nullptr) {
     record->rtt = RttStat::RTT_TIMEOUT;
+
+    // There should never be a timeout for an Interest that does not match
+    // FaceInfo.m_lastInterestName
+    if (record->isTimeoutScheduled() && record->doesNameMatchLastInterest(interestName)) {
+      record->cancelTimeoutEvent();
+    }
+    else {
+      throw std::runtime_error("Timeout for " + interestName.toUri() +
+        " does not match FaceInfo.m_lastInterest: " + record->getLastInterestName().toUri());
+    }
   }
   else {
-    throw std::runtime_error("Could not find or create FaceInfo for " + prefix.toUri() +
+    throw std::runtime_error("Could not find or create FaceInfo for " + interestName.toUri() +
                              " FaceId: " + std::to_string(faceId));
   }
 }
@@ -235,10 +250,6 @@ HyperbolicStatistics::getNamespaceInfo(const ndn::Name& prefix)
   BOOST_ASSERT(info != nullptr);
 
   return info;
-}
-
-FaceInfo::FaceInfo()
-{
 }
 
 } // namespace experimental

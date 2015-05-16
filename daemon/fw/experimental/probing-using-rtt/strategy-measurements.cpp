@@ -33,6 +33,37 @@ NFD_LOG_INIT("StrategyMeasurements");
 
 const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(30);
 
+FaceInfo::FaceInfo()
+  : m_isTimeoutScheduled(false)
+{
+}
+
+void
+FaceInfo::setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName)
+{
+  if (!m_isTimeoutScheduled) {
+    m_timeoutEventId = id;
+    m_isTimeoutScheduled = true;
+    m_lastInterestName = interestName;
+  }
+  else {
+    throw std::runtime_error("Tried to schedule a timeout for a face that already has a timeout scheduled.");
+  }
+}
+
+void
+FaceInfo::cancelTimeoutEvent()
+{
+  scheduler::cancel(m_timeoutEventId);
+  m_isTimeoutScheduled = false;
+}
+
+bool
+FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
+{
+  return m_lastInterestName.isPrefixOf(name);
+}
+
 FaceInfo&
 NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
