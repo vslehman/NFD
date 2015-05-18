@@ -120,8 +120,8 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
 {
   NFD_LOG_TRACE("Looking for face to probe " << fibEntry->getPrefix());
 
-  FaceInfoNextHopPairSet rankedFaces(
-    [] (FaceInfoNextHopPair lhs, FaceInfoNextHopPair rhs) -> bool {
+  FaceInfoFacePairSet rankedFaces(
+    [] (FaceInfoFacePair lhs, FaceInfoFacePair rhs) -> bool {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
       if (lhs.first->rtt != RttStat::RTT_TIMEOUT && rhs.first->rtt == RttStat::RTT_TIMEOUT) {
@@ -156,7 +156,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
     }
 
     // Add FaceInfo to container sorted by RTT
-    rankedFaces.insert(std::make_pair(make_shared<FaceInfo>(info), hop));
+    rankedFaces.insert(std::make_pair(make_shared<FaceInfo>(info), hop.getFace()));
   }
 
   if (rankedFaces.empty()) {
@@ -207,7 +207,7 @@ HyperbolicProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 }
 
 shared_ptr<Face>
-HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet& rankedFaces)
+HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
 {
   double randomNumber = getRandomNumber(0, 1);
   NFD_LOG_TRACE("randomNumber: " << randomNumber);
@@ -219,9 +219,9 @@ HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet&
 
   double offset = 0;
 
-  for (const FaceInfoNextHopPair pair : rankedFaces) {
+  for (const FaceInfoFacePair pair : rankedFaces) {
     double probability = m_probabilityFunction(rank++, rankSum, rankedFaces.size());
-    NFD_LOG_TRACE("probability: " << probability);
+    NFD_LOG_TRACE("probability: " << probability << " for FaceId: " << pair.second->getId());
 
     // Is the random number within the bounds of this face's probability + the previous faces'
     // probability?
@@ -234,15 +234,15 @@ HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet&
     //
     if (randomNumber < offset + probability) {
       NFD_LOG_DEBUG("Found face to probe");
-      return pair.second.getFace();
+      return pair.second;
     }
 
     offset += probability;
     NFD_LOG_TRACE("offset: " << offset);
   }
 
-  NFD_LOG_WARN("Unable to find face to probe using probability!");
-  return nullptr;
+  NFD_LOG_FATAL("Unable to find face to probe using probability!");
+  throw std::runtime_error("Unable to find face to probe using probability!");
 }
 
 } // namespace experimental
