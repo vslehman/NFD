@@ -66,12 +66,12 @@ public:
 
 private:
   // Used to associate FaceInfo with the face in a NextHop
-  typedef std::pair<shared_ptr<FaceInfo>, const fib::NextHop&> FaceInfoNextHopPair;
-  typedef std::function<bool(FaceInfoNextHopPair, FaceInfoNextHopPair)> FaceInfoPredicate;
-  typedef std::set<FaceInfoNextHopPair, FaceInfoPredicate> FaceInfoNextHopPairSet;
+  typedef std::pair<shared_ptr<FaceInfo>, shared_ptr<Face>> FaceInfoFacePair;
+  typedef std::function<bool(FaceInfoFacePair, FaceInfoFacePair)> FaceInfoPredicate;
+  typedef std::set<FaceInfoFacePair, FaceInfoPredicate> FaceInfoFacePairSet;
 
   shared_ptr<Face>
-  getFaceBasedOnProbability(const FaceInfoNextHopPairSet& rankedFaces);
+  getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces);
 
   typedef std::function<double(uint64_t /*rank*/, uint64_t /*rankSum*/, uint64_t /*nFaces*/)> ProbabilityFunction;
 
