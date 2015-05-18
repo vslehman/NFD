@@ -60,7 +60,7 @@ getRandomNumber(double start, double end)
 double
 getProbabilityFunction1(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
 {
-  return (nFaces + 1 - rank)/rankSum;
+  return ((double)(nFaces + 1 - rank))/rankSum;
 }
 
 //==============================================================================
@@ -210,14 +210,18 @@ shared_ptr<Face>
 HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet& rankedFaces)
 {
   double randomNumber = getRandomNumber(0, 1);
+  NFD_LOG_TRACE("randomNumber: " << randomNumber);
 
   uint64_t rankSum = ((rankedFaces.size() + 1)*(rankedFaces.size()))/2;
+  NFD_LOG_TRACE("rankSum: " << rankSum);
+
   uint64_t rank = 1;
 
   double offset = 0;
 
   for (const FaceInfoNextHopPair pair : rankedFaces) {
     double probability = m_probabilityFunction(rank++, rankSum, rankedFaces.size());
+    NFD_LOG_TRACE("probability: " << probability);
 
     // Is the random number within the bounds of this face's probability + the previous faces'
     // probability?
@@ -234,6 +238,7 @@ HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoNextHopPairSet&
     }
 
     offset += probability;
+    NFD_LOG_TRACE("offset: " << offset);
   }
 
   NFD_LOG_WARN("Unable to find face to probe using probability!");
