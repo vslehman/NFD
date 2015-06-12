@@ -23,11 +23,11 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_PROBING_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_PROBING_HPP
+#ifndef NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP
+#define NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP
 
 #include "common.hpp"
-#include "hyperbolic-statistics.hpp"
+#include "asf-statistics.hpp"
 #include "strategy-measurements.hpp"
 #include "../probing-module.hpp"
 #include "table/fib.hpp"
@@ -41,12 +41,12 @@ namespace nfd {
 namespace fw {
 namespace experimental {
 
-/** \brief Hyperbolic Probing Module version 1
+/** \brief ASF Probing Module
  */
-class HyperbolicProbingModule : public ProbingModule
+class AsfProbingModule : public ProbingModule
 {
 public:
-  HyperbolicProbingModule(HyperbolicStatistics& stats);
+  AsfProbingModule(AsfStatistics& stats);
 
   virtual void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
@@ -78,7 +78,7 @@ private:
   const ProbabilityFunction m_probabilityFunction;
 
 private:
-  HyperbolicStatistics& m_stats;
+  AsfStatistics& m_stats;
 
   static const time::seconds DEFAULT_PROBING_INTERVAL;
 };
@@ -87,4 +87,4 @@ private:
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_PROBING_HPP
+#endif // NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP
