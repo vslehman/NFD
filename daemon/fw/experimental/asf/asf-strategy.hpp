@@ -23,69 +23,67 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
+#ifndef NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP
+#define NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP
 
-#include "../rtt-recorder.hpp"
-#include "../statistics-module.hpp"
-#include "strategy-measurements.hpp"
-#include "fw/strategy-info.hpp"
-#include "table/pit.hpp"
+#include "asf-statistics.hpp"
+#include "fw/retx-suppression-fixed.hpp"
+#include "fw/strategy.hpp"
+
+#include <unordered_set>
+#include <unordered_map>
 
 namespace nfd {
-
-class MeasurementsAccessor;
-
-namespace fib {
-class Entry;
-class NextHop;
-}
-
 namespace fw {
 namespace experimental {
 
-class HyperbolicStatistics : public StatisticsModule
+class ProbingModule;
+
+/** \brief Adaptive SRTT-based Forwarding Strategy
+ */
+class AsfStrategy : public Strategy
 {
 public:
-  HyperbolicStatistics(MeasurementsAccessor& measurements)
-    : m_measurements(measurements)
-  {
-  }
+  AsfStrategy(Forwarder& forwarder, const Name& name = STRATEGY_NAME);
 
-  void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
+  virtual
+  ~AsfStrategy();
 
-  const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
+public: // triggers
+  virtual void
+  afterReceiveInterest(const Face& inFace,
+                       const Interest& interest,
+                       shared_ptr<fib::Entry> fibEntry,
+                       shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
 
   virtual void
-  afterForwardInterest(const Interest& interest,
-                       const fib::Entry& fibEntry,
-                       const Face& face) DECL_OVERRIDE;
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
+                        const Face& inFace, const Data& data) DECL_OVERRIDE;
 
-public:
-  FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
-
-  NamespaceInfo&
-  getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
-
-  shared_ptr<NamespaceInfo>
-  getNamespaceInfo(const ndn::Name& prefix);
+  //virtual void
+  //beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
 
 private:
   void
-  onTimeout(const ndn::Name& interestName, FaceId faceId);
+  forwardInterest(const Interest& interest,
+                  const fib::Entry& fibEntry,
+                  shared_ptr<pit::Entry> pitEntry,
+                  shared_ptr<Face> outFace,
+                  bool wantNewNonce = false);
 
 private:
-  RttRecorder m_rttRecorder;
-  MeasurementsAccessor& m_measurements;
+  AsfStatistics m_stats;
+  std::unique_ptr<ProbingModule> m_probe;
 
-  static const time::microseconds MEASUREMENTS_LIFETIME;
+  RetxSuppressionFixed m_retxSuppression;
+
+public:
+  static const Name STRATEGY_NAME;
+  static const time::seconds SUPPRESSION_TIME;
 };
 
 } // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_HYPERBOLIC_STATISTICS_HPP
+#endif // NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP

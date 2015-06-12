@@ -23,9 +23,9 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hyperbolic-probing.hpp"
+#include "asf-probing.hpp"
 
-#include "hyperbolic-statistics.hpp"
+#include "asf-statistics.hpp"
 #include "../rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 
@@ -35,7 +35,7 @@ namespace nfd {
 namespace fw {
 namespace experimental {
 
-NFD_LOG_INIT("HyperbolicProbing");
+NFD_LOG_INIT("AsfProbing");
 
 //==============================================================================
 // Random Number Generator
@@ -78,9 +78,9 @@ getProbabilityFunction2(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const time::seconds HyperbolicProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(10);
+const time::seconds AsfProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(10);
 
-HyperbolicProbingModule::HyperbolicProbingModule(HyperbolicStatistics& stats)
+AsfProbingModule::AsfProbingModule(AsfStatistics& stats)
   : ProbingModule(DEFAULT_PROBING_INTERVAL)
   , m_probabilityFunction(&getProbabilityFunction1)
   , m_stats(stats)
@@ -89,8 +89,7 @@ HyperbolicProbingModule::HyperbolicProbingModule(HyperbolicStatistics& stats)
 }
 
 void
-HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                                       const time::milliseconds& interval)
+AsfProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseconds& interval)
 {
   ndn::Name prefix = fibEntry->getPrefix();
 
@@ -113,7 +112,7 @@ HyperbolicProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
 }
 
 shared_ptr<Face>
-HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
+AsfProbingModule::getFaceToProbe(const Face& inFace,
                                         const Interest& interest,
                                         shared_ptr<fib::Entry> fibEntry,
                                         const Face& faceUsed)
@@ -168,7 +167,7 @@ HyperbolicProbingModule::getFaceToProbe(const Face& inFace,
 }
 
 bool
-HyperbolicProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
+AsfProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 {
   // Return the probing flag status for a namespace
   NamespaceInfo& info = m_stats.getOrCreateNamespaceInfo(*fibEntry);
@@ -196,7 +195,7 @@ HyperbolicProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 }
 
 void
-HyperbolicProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
+AsfProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 {
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
@@ -207,7 +206,7 @@ HyperbolicProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 }
 
 shared_ptr<Face>
-HyperbolicProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
+AsfProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
 {
   double randomNumber = getRandomNumber(0, 1);
   NFD_LOG_TRACE("randomNumber: " << randomNumber);

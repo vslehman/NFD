@@ -23,36 +23,36 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hyperbolic-strategy.hpp"
+#include "asf-strategy.hpp"
 
-#include "hyperbolic-probing.hpp"
+#include "asf-probing.hpp"
 #include "core/logger.hpp"
 
 namespace nfd {
 namespace fw {
 namespace experimental {
 
-NFD_LOG_INIT("HyperbolicStrategy");
+NFD_LOG_INIT("AsfStrategy");
 
-const Name HyperbolicStrategy::STRATEGY_NAME("ndn:/localhost/nfd/strategy/hyperbolic/%FD%01");
-const time::seconds HyperbolicStrategy::SUPPRESSION_TIME = time::seconds(2);
+const Name AsfStrategy::STRATEGY_NAME("ndn:/localhost/nfd/strategy/asf/%FD%01");
+const time::seconds AsfStrategy::SUPPRESSION_TIME = time::seconds(2);
 
-NFD_REGISTER_STRATEGY(HyperbolicStrategy);
+NFD_REGISTER_STRATEGY(AsfStrategy);
 
-HyperbolicStrategy::HyperbolicStrategy(Forwarder& forwarder, const Name& name)
+AsfStrategy::AsfStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
   , m_stats(this->getMeasurements())
-  , m_probe(std::unique_ptr<ProbingModule>(new HyperbolicProbingModule(m_stats)))
+  , m_probe(std::unique_ptr<ProbingModule>(new AsfProbingModule(m_stats)))
   , m_retxSuppression(SUPPRESSION_TIME)
 {
 }
 
-HyperbolicStrategy::~HyperbolicStrategy()
+AsfStrategy::~AsfStrategy()
 {
 }
 
 void
-HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
+AsfStrategy::afterReceiveInterest(const Face& inFace,
                                          const Interest& interest,
                                          shared_ptr<fib::Entry> fibEntry,
                                          shared_ptr<pit::Entry> pitEntry)
@@ -113,7 +113,7 @@ HyperbolicStrategy::afterReceiveInterest(const Face& inFace,
 }
 
 void
-HyperbolicStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
+AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
                                           const Face& inFace,
                                           const Data& data)
 {
@@ -121,7 +121,7 @@ HyperbolicStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 }
 
 void
-HyperbolicStrategy::forwardInterest(const Interest& interest,
+AsfStrategy::forwardInterest(const Interest& interest,
                                     const fib::Entry& fibEntry,
                                     shared_ptr<pit::Entry> pitEntry,
                                     shared_ptr<Face> outFace,

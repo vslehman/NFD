@@ -23,7 +23,7 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hyperbolic-statistics.hpp"
+#include "asf-statistics.hpp"
 
 #include "../rtt-recorder.hpp"
 #include "table/fib-entry.hpp"
@@ -33,9 +33,9 @@ namespace nfd {
 namespace fw {
 namespace experimental {
 
-NFD_LOG_INIT("HyperbolicStatistics");
+NFD_LOG_INIT("AsfStatistics");
 
-const time::microseconds HyperbolicStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
+const time::microseconds AsfStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
 
 struct FaceStats
 {
@@ -66,7 +66,7 @@ getValueForSorting(const FaceStats& stats)
 }
 
 const shared_ptr<Face>
-HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
+AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
@@ -115,11 +115,11 @@ HyperbolicStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace
 }
 
 void
-HyperbolicStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
+AsfStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
                                             const Face& inFace,
                                             const Data& data)
 {
-  NFD_LOG_TRACE("HyperbolicStatistics::beforeSatisfyInterest");
+  NFD_LOG_TRACE("AsfStatistics::beforeSatisfyInterest");
 
   // Get measurements::Entry associated with the namespace
   shared_ptr<measurements::Entry> me = m_measurements.findLongestPrefixMatch(*pitEntry);
@@ -148,7 +148,7 @@ HyperbolicStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 }
 
 void
-HyperbolicStatistics::afterForwardInterest(const Interest& interest,
+AsfStatistics::afterForwardInterest(const Interest& interest,
                                            const fib::Entry& fibEntry,
                                            const Face& face)
 {
@@ -162,14 +162,14 @@ HyperbolicStatistics::afterForwardInterest(const Interest& interest,
                   " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
 
     scheduler::EventId id = scheduler::schedule(timeout,
-        bind(&HyperbolicStatistics::onTimeout, this, interest.getName(), face.getId()));
+        bind(&AsfStatistics::onTimeout, this, interest.getName(), face.getId()));
 
     info.setTimeoutEvent(id, interest.getName());
   }
 }
 
 void
-HyperbolicStatistics::onTimeout(const ndn::Name& interestName, FaceId faceId)
+AsfStatistics::onTimeout(const ndn::Name& interestName, FaceId faceId)
 {
   NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
 
@@ -212,7 +212,7 @@ HyperbolicStatistics::onTimeout(const ndn::Name& interestName, FaceId faceId)
 }
 
 FaceInfo&
-HyperbolicStatistics::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
+AsfStatistics::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
   NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
 
@@ -220,7 +220,7 @@ HyperbolicStatistics::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face
 }
 
 NamespaceInfo&
-HyperbolicStatistics::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
+AsfStatistics::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
 {
   shared_ptr<measurements::Entry> me = m_measurements.get(fibEntry);
 
@@ -234,7 +234,7 @@ HyperbolicStatistics::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
 }
 
 shared_ptr<NamespaceInfo>
-HyperbolicStatistics::getNamespaceInfo(const ndn::Name& prefix)
+AsfStatistics::getNamespaceInfo(const ndn::Name& prefix)
 {
   shared_ptr<measurements::Entry> me = m_measurements.findLongestPrefixMatch(prefix);
 
