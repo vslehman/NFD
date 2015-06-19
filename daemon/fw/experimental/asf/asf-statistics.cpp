@@ -125,8 +125,8 @@ AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 
 void
 AsfStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
-                                            const Face& inFace,
-                                            const Data& data)
+                                     const Face& inFace,
+                                     const Data& data)
 {
   NFD_LOG_TRACE("AsfStatistics::beforeSatisfyInterest");
 
@@ -161,8 +161,8 @@ AsfStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 
 void
 AsfStatistics::afterForwardInterest(const Interest& interest,
-                                           const fib::Entry& fibEntry,
-                                           const Face& face)
+                                    const fib::Entry& fibEntry,
+                                    const Face& face)
 {
   FaceInfo& info = getOrCreateFaceInfo(fibEntry, face);
 

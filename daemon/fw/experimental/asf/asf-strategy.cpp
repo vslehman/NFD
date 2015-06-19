@@ -53,9 +53,9 @@ AsfStrategy::~AsfStrategy()
 
 void
 AsfStrategy::afterReceiveInterest(const Face& inFace,
-                                         const Interest& interest,
-                                         shared_ptr<fib::Entry> fibEntry,
-                                         shared_ptr<pit::Entry> pitEntry)
+                                  const Interest& interest,
+                                  shared_ptr<fib::Entry> fibEntry,
+                                  shared_ptr<pit::Entry> pitEntry)
 {
   NFD_LOG_TRACE("Received Interest " << interest.getName() << " nonce=" << interest.getNonce());
 
@@ -113,18 +113,18 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
 
 void
 AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
-                                          const Face& inFace,
-                                          const Data& data)
+                                   const Face& inFace,
+                                   const Data& data)
 {
   m_stats.beforeSatisfyInterest(pitEntry, inFace, data);
 }
 
 void
 AsfStrategy::forwardInterest(const Interest& interest,
-                                    const fib::Entry& fibEntry,
-                                    shared_ptr<pit::Entry> pitEntry,
-                                    shared_ptr<Face> outFace,
-                                    bool wantNewNonce)
+                             const fib::Entry& fibEntry,
+                             shared_ptr<pit::Entry> pitEntry,
+                             shared_ptr<Face> outFace,
+                             bool wantNewNonce)
 {
   NFD_LOG_DEBUG("Forwarding Interest using FaceId: " << outFace->getId());
   this->sendInterest(pitEntry, outFace, wantNewNonce);
