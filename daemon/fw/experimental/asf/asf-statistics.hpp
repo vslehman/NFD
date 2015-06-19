@@ -64,8 +64,8 @@ public:
                        const Face& face) DECL_OVERRIDE;
 
 public:
-  FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
+  FaceInfo*
+  getFaceInfo(const fib::Entry& fibEntry, const Face& face);
 
   NamespaceInfo&
   getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
@@ -76,6 +76,9 @@ public:
 private:
   void
   onTimeout(const ndn::Name& interestName, FaceId faceId);
+
+  FaceInfo&
+  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
 
 private:
   RttRecorder m_rttRecorder;

@@ -64,6 +64,19 @@ FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
   return m_lastInterestName.isPrefixOf(name);
 }
 
+FaceInfo*
+NamespaceInfo::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
+{
+  FaceInfoMap::iterator it = faceInfoMap.find(face.getId());
+
+  if (it != faceInfoMap.end()) {
+    return &it->second;
+  }
+  else {
+    return nullptr;
+  }
+}
+
 FaceInfo&
 NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
@@ -74,19 +87,12 @@ NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
   if (it == faceInfoMap.end()) {
     const auto& pair = faceInfoMap.insert(std::make_pair(face.getId(), FaceInfo()));
     info = &pair.first->second;
+
+    extendFaceInfoLifetime(*info, face);
   }
   else {
     info = &it->second;
   }
-
-  // Cancel previous expiration
-  scheduler::cancel(info->measurementExpirationId);
-
-  // Refresh measurement
-  scheduler::EventId id = scheduler::schedule(FaceInfo::MEASUREMENT_LIFETIME,
-    bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
-
-  info->measurementExpirationId = id;
 
   return *info;
 }
@@ -96,6 +102,19 @@ NamespaceInfo::expireFaceInfo(FaceId faceId)
 {
   NFD_LOG_DEBUG("Measurements for FaceId: " << faceId << " have expired");
   faceInfoMap.erase(faceId);
+}
+
+void
+NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
+{
+  // Cancel previous expiration
+  scheduler::cancel(info.measurementExpirationId);
+
+  // Refresh measurement
+  scheduler::EventId id = scheduler::schedule(FaceInfo::MEASUREMENT_LIFETIME,
+    bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
+
+  info.measurementExpirationId = id;
 }
 
 } // namespace experimental

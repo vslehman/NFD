@@ -113,9 +113,9 @@ AsfProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::mil
 
 shared_ptr<Face>
 AsfProbingModule::getFaceToProbe(const Face& inFace,
-                                        const Interest& interest,
-                                        shared_ptr<fib::Entry> fibEntry,
-                                        const Face& faceUsed)
+                                 const Interest& interest,
+                                 shared_ptr<fib::Entry> fibEntry,
+                                 const Face& faceUsed)
 {
   NFD_LOG_TRACE("Looking for face to probe " << fibEntry->getPrefix());
 
@@ -146,16 +146,16 @@ AsfProbingModule::getFaceToProbe(const Face& inFace,
       continue;
     }
 
-    FaceInfo& info = m_stats.getOrCreateFaceInfo(*fibEntry, *hop.getFace());
+    FaceInfo* info = m_stats.getFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
-    if (info.srtt == RttStat::RTT_NO_MEASUREMENT) {
+    if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
       NFD_LOG_DEBUG("Found face to probe with no RTT measurement");
       return hop.getFace();
     }
 
     // Add FaceInfo to container sorted by RTT
-    rankedFaces.insert(std::make_pair(make_shared<FaceInfo>(info), hop.getFace()));
+    rankedFaces.insert(std::make_pair(make_shared<FaceInfo>(*info), hop.getFace()));
   }
 
   if (rankedFaces.empty()) {
