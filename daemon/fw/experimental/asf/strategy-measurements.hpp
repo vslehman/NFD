@@ -98,8 +98,14 @@ public:
   FaceInfo&
   getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
 
+  FaceInfo*
+  getFaceInfo(const fib::Entry& fibEntry, const Face& face);
+
   void
   expireFaceInfo(FaceId faceId);
+
+  void
+  extendFaceInfoLifetime(FaceInfo& info, const Face& face);
 
 public:
   FaceInfoMap faceInfoMap;

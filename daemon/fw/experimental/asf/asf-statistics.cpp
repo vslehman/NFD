@@ -96,11 +96,20 @@ AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
       continue;
     }
 
-    FaceInfo& info = getOrCreateFaceInfo(fibEntry, *hop.getFace());
+    FaceInfo* info = getFaceInfo(fibEntry, *hop.getFace());
 
-    FaceStats stats = {hop.getFace(), info.rtt, info.srtt, hop.getCost()};
+    if (info == nullptr) {
+      FaceStats stats = {hop.getFace(),
+                         RttStat::RTT_NO_MEASUREMENT,
+                         RttStat::RTT_NO_MEASUREMENT,
+                         hop.getCost()};
 
-    rankedFaces.insert(stats);
+      rankedFaces.insert(stats);
+    }
+    else {
+      FaceStats stats = {hop.getFace(), info->rtt, info->srtt, hop.getCost()};
+      rankedFaces.insert(stats);
+    }
   }
 
   FaceStatsSet::iterator it = rankedFaces.begin();
@@ -139,6 +148,9 @@ AsfStatistics::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   FaceInfo& face = info->faceInfoMap.at(inFace.getId());
 
   m_rttRecorder.record(face, pitEntry, me->getName(), inFace);
+
+  // Extend lifetime for measurements associated with face
+  info->extendFaceInfoLifetime(face, inFace);
 
   if (face.isTimeoutScheduled() && face.doesNameMatchLastInterest(data.getName())) {
     // Cancel timeout
@@ -217,6 +229,14 @@ AsfStatistics::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
   NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
 
   return info.getOrCreateFaceInfo(fibEntry, face);
+}
+
+FaceInfo*
+AsfStatistics::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
+{
+  NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
+
+  return info.getFaceInfo(fibEntry, face);
 }
 
 NamespaceInfo&

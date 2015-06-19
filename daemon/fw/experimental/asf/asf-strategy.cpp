@@ -71,7 +71,6 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
     return;
   }
 
-
   const fib::NextHopList& nexthops = fibEntry->getNextHops();
 
   if (nexthops.size() == 0) {
