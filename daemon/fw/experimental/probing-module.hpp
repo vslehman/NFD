@@ -41,10 +41,15 @@ namespace experimental {
 class ProbingModule
 {
 public:
-  ProbingModule(const time::seconds& probingInterval)
+  ProbingModule(const time::seconds& interval)
     : m_isProbingNeeded(true)
-    , PROBING_INTERVAL(probingInterval)
+    , m_probingInterval(interval)
+    , m_globalSeed(0)
+    , m_nodeUid("NULL")
+    , m_isGlobalSeedInitialized(false)
+    , m_isNodeUidInitialized(false)
   {
+    updateOverallSeed();
   }
 
   virtual shared_ptr<Face>
@@ -63,9 +68,44 @@ public:
   virtual void
   afterProbe(shared_ptr<fib::Entry> fibEntry) = 0;
 
+  void
+  setGlobalSeed(uint64_t seed);
+
+  void
+  setNodeUid(const std::string& uid);
+
+  void
+  setProbingInterval(uint32_t interval)
+  {
+    m_probingInterval = time::seconds(interval);
+  }
+
+  const time::seconds&
+  getProbingInterval() const
+  {
+    return m_probingInterval;
+  }
+
+PUBLIC_WITH_TESTS_ELSE_PROTECTED:
+  double
+  getRandomNumber(double start, double end);
+
+private:
+  void
+  updateOverallSeed();
+
 protected:
   bool m_isProbingNeeded;
-  const time::seconds PROBING_INTERVAL;
+
+private:
+  time::seconds m_probingInterval;
+
+  // Random number generation
+  uint64_t m_globalSeed;
+  std::string m_nodeUid;
+
+  bool m_isGlobalSeedInitialized;
+  bool m_isNodeUidInitialized;
 };
 
 } // namespace experimental

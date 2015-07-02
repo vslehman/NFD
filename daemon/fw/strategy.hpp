@@ -54,6 +54,12 @@ public:
   const Name&
   getName() const;
 
+  virtual void
+  onConfig(const ConfigSection& configSection)
+  {
+
+  }
+
 public: // triggers
   /** \brief trigger after Interest is received
    *
