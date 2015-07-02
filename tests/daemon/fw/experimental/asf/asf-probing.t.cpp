@@ -23,68 +23,89 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP
+#include "tests/test-common.hpp"
 
-#include "common.hpp"
-#include "asf-statistics.hpp"
-#include "strategy-measurements.hpp"
-#include "../probing-module.hpp"
-#include "table/fib.hpp"
-#include "table/pit.hpp"
+#include "fw/experimental/probing-module.hpp"
 
-namespace ndn {
-class Face;
-}
+#include <random>
 
 namespace nfd {
 namespace fw {
 namespace experimental {
+namespace tests {
 
-/** \brief ASF Probing Module
- */
-class AsfProbingModule : public ProbingModule
+class TestProbingModule : public ProbingModule
 {
 public:
-  AsfProbingModule(AsfStatistics& stats);
+  TestProbingModule()
+    : ProbingModule(time::seconds(10))
+  {
+  }
 
-  virtual void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                const time::milliseconds& interval) DECL_OVERRIDE;
-
-  virtual shared_ptr<Face>
+  shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
-                 const Face& faceUsed) DECL_OVERRIDE;
-
-  bool
-  isProbingNeeded(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;
+                 const Face& faceUsed)
+  {
+    return nullptr;
+  }
 
   void
-  afterProbe(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;
+  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                const time::milliseconds& interval)
+  {
+  }
 
-private:
-  // Used to associate FaceInfo with the face in a NextHop
-  typedef std::pair<shared_ptr<FaceInfo>, shared_ptr<Face>> FaceInfoFacePair;
-  typedef std::function<bool(FaceInfoFacePair, FaceInfoFacePair)> FaceInfoPredicate;
-  typedef std::set<FaceInfoFacePair, FaceInfoPredicate> FaceInfoFacePairSet;
+  bool
+  isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
+  {
+    return false;
+  }
 
-  shared_ptr<Face>
-  getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces);
-
-  typedef std::function<double(uint64_t /*rank*/, uint64_t /*rankSum*/, uint64_t /*nFaces*/)> ProbabilityFunction;
-
-  const ProbabilityFunction m_probabilityFunction;
-
-private:
-  AsfStatistics& m_stats;
-
-  static const time::seconds DEFAULT_PROBING_INTERVAL;
+  void
+  afterProbe(shared_ptr<fib::Entry> fibEntry)
+  {
+  }
 };
 
+BOOST_AUTO_TEST_SUITE(AsfProbing)
+
+BOOST_AUTO_TEST_CASE(RandomSeed)
+{
+  TestProbingModule probe;
+
+  // Get initial number
+  probe.setGlobalSeed(128);
+  probe.setNodeUid("/ndn/site/routerA");
+
+  double first = probe.getRandomNumber(0, 10);
+
+  // Should a new number
+  double second = probe.getRandomNumber(0, 10);
+
+  BOOST_CHECK(second != first);
+
+  // Reset environment but change Node UID
+  probe.setGlobalSeed(128);
+  probe.setNodeUid("/ndn/site/routerB");
+
+  double third = probe.getRandomNumber(0, 10);
+
+  BOOST_CHECK(third != first);
+
+  // Reset environment to same as start of test; should get the same number
+  probe.setGlobalSeed(128);
+  probe.setNodeUid("/ndn/site/routerA");
+
+  double fourth = probe.getRandomNumber(0, 10);
+
+  BOOST_CHECK_EQUAL(first, fourth);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+} // namespace tests
 } // namespace experimental
 } // namespace fw
 } // namespace nfd
-
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_ASF_PROBING_HPP

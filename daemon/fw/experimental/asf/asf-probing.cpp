@@ -29,27 +29,11 @@
 #include "../rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 
-#include <random>
-
 namespace nfd {
 namespace fw {
 namespace experimental {
 
 NFD_LOG_INIT("AsfProbing");
-
-//==============================================================================
-// Random Number Generator
-//------------------------------------------------------------------------------
-double
-getRandomNumber(double start, double end)
-{
-  std::random_device rd;
-  std::mt19937 generator(rd());
-  std::uniform_real_distribution<> distribution(start, end);
-
-  return distribution(generator);
-}
-
 
 //==============================================================================
 // Probability Function #1
@@ -202,7 +186,7 @@ AsfProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
   NamespaceInfo& info = m_stats.getOrCreateNamespaceInfo(*fibEntry);
   info.isProbingNeeded = false;
 
-  scheduleProbe(fibEntry);
+  scheduleProbe(fibEntry, getProbingInterval());
 }
 
 shared_ptr<Face>

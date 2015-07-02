@@ -178,6 +178,8 @@ Nfd::initializeManagement()
 
   m_validator->setConfigFile(config);
 
+  m_forwarder->setConfigFile(config);
+
   m_faceManager->setConfigFile(config);
 
   // parse config file

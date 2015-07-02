@@ -332,3 +332,21 @@ rib
     ; retry unless beyond the max_retry_wait, in which case max_retry_wait is set as the wait time.
   }
 }
+
+forwarder
+{
+  asf-strategy
+  {
+    ; global seed for the strategy's random number generator
+    global-seed 1024 ; uint64_t
+
+    ; UID to identify this node; used to alter the global seed for each node
+    node-uid /node/name ; std::string
+
+    ; interval (in seconds) between each probe for a namespace
+    probing-interval 10
+
+    ; time (in seconds) to keep FaceInfo measurements if they are not refreshed
+    face-measurements-lifetime 30
+  }
+}
