@@ -26,6 +26,7 @@
 #include "asf-statistics.hpp"
 
 #include "../rtt-recorder.hpp"
+#include "core/scheduler.hpp"
 #include "table/fib-entry.hpp"
 #include "table/measurements-accessor.hpp"
 
@@ -36,6 +37,7 @@ namespace experimental {
 NFD_LOG_INIT("AsfStatistics");
 
 const time::microseconds AsfStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
+const time::seconds AsfStatistics::LEARNING_PERIOD = time::seconds(10);
 
 struct FaceStats
 {
@@ -69,6 +71,16 @@ const shared_ptr<Face>
 AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
+
+  if (!m_hasReceivedFirstInterest) {
+    startLearningPeriod();
+    m_hasReceivedFirstInterest = true;
+  }
+
+  // If it is still the learning period, use the learning period rules
+  if (m_isLearningPeriod) {
+    return getBestFaceDuringLearningPeriod(fibEntry, inFace);
+  }
 
   typedef std::function<bool(const FaceStats&, const FaceStats&)> FaceStatsPredicate;
   typedef std::set<FaceStats, FaceStatsPredicate> FaceStatsSet;
@@ -270,6 +282,63 @@ AsfStatistics::getNamespaceInfo(const ndn::Name& prefix)
   BOOST_ASSERT(info != nullptr);
 
   return info;
+}
+
+void
+AsfStatistics::startLearningPeriod()
+{
+  if (!m_isLearningPeriod) {
+    m_isLearningPeriod = true;
+
+    scheduler::schedule(LEARNING_PERIOD, [this] {
+      this->endLearningPeriod();
+    });
+  }
+  else {
+    throw std::runtime_error("Tried to start learning period while one is already in progress");
+  }
+}
+
+void
+AsfStatistics::endLearningPeriod()
+{
+  m_isLearningPeriod = false;
+}
+
+const shared_ptr<Face>
+AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const Face& inFace)
+{
+  shared_ptr<Face> backupFace;
+
+  for (const fib::NextHop& hop : fibEntry.getNextHops()) {
+
+    // Don't foward back to the inFace
+    if (hop.getFace()->getId() == inFace.getId()) {
+      continue;
+    }
+
+    // Use the lowest cost face if all others also timed out
+    if (backupFace == nullptr) {
+      return hop.getFace();
+    }
+
+    FaceInfo* info = getFaceInfo(fibEntry, *hop.getFace());
+
+    if (info == nullptr) {
+      // If the face has not collected measurements, use it
+      return hop.getFace();
+    }
+    else if (info->rtt == RttStat::RTT_TIMEOUT) {
+      // Do not use this Face if the last Interest timed out
+      continue;
+    }
+    else {
+      // The last interest did not timeout so continue using face
+      return hop.getFace();
+    }
+  }
+
+  return backupFace;
 }
 
 } // namespace experimental
