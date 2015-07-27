@@ -40,6 +40,8 @@ class FaceInfo : public RttStat
 public:
   FaceInfo();
 
+  ~FaceInfo();
+
   void
   setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName);
 
@@ -62,7 +64,7 @@ public:
   doesNameMatchLastInterest(const ndn::Name& name);
 
 public:
-// Timeout associated with measurement
+  // Timeout associated with measurement
   scheduler::EventId measurementExpirationId;
 
   static const time::seconds MEASUREMENT_LIFETIME;
