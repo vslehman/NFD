@@ -178,6 +178,10 @@ AsfStatistics::afterForwardInterest(const Interest& interest,
 {
   FaceInfo& info = getOrCreateFaceInfo(fibEntry, face);
 
+  // Refresh measurements since Face is being used for forwarding
+  NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
+  namespaceInfo.extendFaceInfoLifetime(info, face);
+
   if (!info.isTimeoutScheduled()) {
     // Estimate and schedule timeout
     RttEstimator::Duration timeout = info.rttEstimator.computeRto();

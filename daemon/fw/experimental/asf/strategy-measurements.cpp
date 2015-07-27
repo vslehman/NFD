@@ -38,6 +38,12 @@ FaceInfo::FaceInfo()
 {
 }
 
+FaceInfo::~FaceInfo()
+{
+  cancelTimeoutEvent();
+  scheduler::cancel(this->measurementExpirationId);
+}
+
 void
 FaceInfo::setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName)
 {
@@ -107,6 +113,9 @@ NamespaceInfo::expireFaceInfo(FaceId faceId)
 void
 NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
 {
+  NFD_LOG_DEBUG("Extending FaceInfo lifetime for Face ID: " << face.getId() <<
+                " with last Interest name: " << info.getLastInterestName());
+
   // Cancel previous expiration
   scheduler::cancel(info.measurementExpirationId);
 
