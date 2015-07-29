@@ -312,6 +312,27 @@ AsfStatistics::endLearningPeriod()
 const shared_ptr<Face>
 AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const Face& inFace)
 {
+  // Use the previously used face if it is returning data
+  if (m_lastUsedFace != nullptr) {
+
+    FaceInfo* info = getFaceInfo(fibEntry, *m_lastUsedFace);
+
+    if (info == nullptr || info->rtt != RttStat::RTT_TIMEOUT) {
+      // The last used face either has not collected measurements yet,
+      // or is returning Data
+      return m_lastUsedFace;
+    }
+  }
+
+  // If the primary path has failed, attempt to switch to the face with
+  // the lowest RTT. If there are no faces returning Data, switch to the
+  // face that has the lowest routing cost and has not timed out.
+  // If all faces have timed out, default to the lowest routing cost face
+
+  shared_ptr<Face> lowestRttFace;
+  Rtt lowestRtt;
+
+  shared_ptr<Face> lowestCostFace;
   shared_ptr<Face> backupFace;
 
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
@@ -321,28 +342,51 @@ AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const
       continue;
     }
 
-    // Use the lowest cost face if all others also timed out
+    // Save the lowest cost face in case all others also timed out
     if (backupFace == nullptr) {
       backupFace = hop.getFace();
     }
 
     FaceInfo* info = getFaceInfo(fibEntry, *hop.getFace());
 
-    if (info == nullptr) {
-      // If the face has not collected measurements, use it
-      return hop.getFace();
+    if (info == nullptr || info->rtt == RttStat::RTT_NO_MEASUREMENT) {
+      // The face has not yet collected measurements
+      if (lowestCostFace == nullptr) {
+        // If lowestCostFace is not yet assigned, the current face must
+        // be the lowest cost face that hasn't timed out since fib::NextHops
+        // are sorted by routing cost
+        lowestCostFace = hop.getFace();
+      }
     }
     else if (info->rtt == RttStat::RTT_TIMEOUT) {
-      // Do not use this Face if the last Interest timed out
+      // This face timed out on the previous Interest
       continue;
     }
     else {
-      // The last interest did not timeout so continue using face
-      return hop.getFace();
+      // The last Interest returned data
+      if (lowestRttFace == nullptr || (info->rtt < lowestRtt)) {
+        lowestRttFace = hop.getFace();
+        lowestRtt = info->rtt;
+      }
     }
   }
 
-  return backupFace;
+  if (lowestRttFace != nullptr) {
+    // Switch to Face with lowest RTT
+    m_lastUsedFace = lowestRttFace;
+  }
+  else if (lowestCostFace != nullptr) {
+    // otherwise, use the face with the lowest routing cost
+    // that has not timed out
+    m_lastUsedFace = lowestCostFace;
+  }
+  else {
+    // If all faces have timed out, use the face with the
+    // lowest routing cost
+    m_lastUsedFace = backupFace;
+  }
+
+  return m_lastUsedFace;
 }
 
 } // namespace experimental
