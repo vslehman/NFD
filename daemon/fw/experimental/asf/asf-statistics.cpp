@@ -323,7 +323,7 @@ AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const
 
     // Use the lowest cost face if all others also timed out
     if (backupFace == nullptr) {
-      return hop.getFace();
+      backupFace = hop.getFace();
     }
 
     FaceInfo* info = getFaceInfo(fibEntry, *hop.getFace());
