@@ -88,7 +88,9 @@ public:
   NamespaceInfo()
     : isProbingNeeded(false)
     , hasFirstProbeBeenScheduled(false)
+    , isLearningPeriod(false)
   {
+    startLearningPeriod();
   }
 
   static constexpr int
@@ -109,12 +111,22 @@ public:
   void
   extendFaceInfoLifetime(FaceInfo& info, const Face& face);
 
+private:
+  void
+  startLearningPeriod();
+
+  void
+  endLearningPeriod();
+
 public:
   FaceInfoMap faceInfoMap;
   bool isProbingNeeded;
   bool hasFirstProbeBeenScheduled;
 
   shared_ptr<Face> lastUsedFace;
+  bool isLearningPeriod;
+
+  static const time::seconds LEARNING_PERIOD;
 };
 
 } // namespace experimental

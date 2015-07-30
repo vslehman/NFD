@@ -49,8 +49,6 @@ class AsfStatistics : public StatisticsModule
 public:
   AsfStatistics(MeasurementsAccessor& measurements)
     : m_measurements(measurements)
-    , m_isLearningPeriod(false)
-    , m_hasReceivedFirstInterest(false)
   {
   }
 
@@ -82,12 +80,6 @@ private:
   FaceInfo&
   getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
 
-  void
-  startLearningPeriod();
-
-  void
-  endLearningPeriod();
-
   const shared_ptr<Face>
   getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const Face& inFace);
 
@@ -95,11 +87,7 @@ private:
   RttRecorder m_rttRecorder;
   MeasurementsAccessor& m_measurements;
 
-  bool m_isLearningPeriod;
-  bool m_hasReceivedFirstInterest;
-
   static const time::microseconds MEASUREMENTS_LIFETIME;
-  static const time::seconds LEARNING_PERIOD;
 };
 
 } // namespace experimental

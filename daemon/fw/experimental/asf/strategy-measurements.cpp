@@ -70,6 +70,11 @@ FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
   return m_lastInterestName.isPrefixOf(name);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// class NamespaceInfo
+///////////////////////////////////////////////////////////////////////////////
+const time::seconds NamespaceInfo::LEARNING_PERIOD = time::seconds(10);
+
 FaceInfo*
 NamespaceInfo::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
@@ -124,6 +129,29 @@ NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
     bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
 
   info.measurementExpirationId = id;
+}
+
+void
+NamespaceInfo::startLearningPeriod()
+{
+  if (!isLearningPeriod) {
+    NFD_LOG_INFO("Starting learning period");
+    isLearningPeriod = true;
+
+    scheduler::schedule(LEARNING_PERIOD, [this] {
+      this->endLearningPeriod();
+    });
+  }
+  else {
+    throw std::runtime_error("Tried to start learning period while one is already in progress");
+  }
+}
+
+void
+NamespaceInfo::endLearningPeriod()
+{
+  NFD_LOG_DEBUG("Ending learning period");
+  isLearningPeriod = false;
 }
 
 } // namespace experimental
