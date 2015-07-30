@@ -113,6 +113,8 @@ public:
   FaceInfoMap faceInfoMap;
   bool isProbingNeeded;
   bool hasFirstProbeBeenScheduled;
+
+  shared_ptr<Face> lastUsedFace;
 };
 
 } // namespace experimental
