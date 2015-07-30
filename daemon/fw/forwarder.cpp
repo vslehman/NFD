@@ -45,7 +45,6 @@ Forwarder::onConfig(const ConfigSection& configSection,
   }
 
   for (const auto& pair : configSection) {
-    std::cout << pair.first << std::endl;
     if (pair.first == "asf-strategy") {
       fw::Strategy* strategy =
         m_strategyChoice.getStrategy(fw::experimental::AsfStrategy::STRATEGY_NAME);
