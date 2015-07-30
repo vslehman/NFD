@@ -37,7 +37,6 @@ namespace experimental {
 NFD_LOG_INIT("AsfStatistics");
 
 const time::microseconds AsfStatistics::MEASUREMENTS_LIFETIME = time::seconds(30);
-const time::seconds AsfStatistics::LEARNING_PERIOD = time::seconds(10);
 
 struct FaceStats
 {
@@ -72,13 +71,10 @@ AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
-  if (!m_hasReceivedFirstInterest) {
-    startLearningPeriod();
-    m_hasReceivedFirstInterest = true;
-  }
+  NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
 
-  // If it is still the learning period, use the learning period rules
-  if (m_isLearningPeriod) {
+  // If the namespace is in the learning period, use the learning period rules
+  if (namespaceInfo.isLearningPeriod) {
     return getBestFaceDuringLearningPeriod(fibEntry, inFace);
   }
 
@@ -286,29 +282,6 @@ AsfStatistics::getNamespaceInfo(const ndn::Name& prefix)
   BOOST_ASSERT(info != nullptr);
 
   return info;
-}
-
-void
-AsfStatistics::startLearningPeriod()
-{
-  if (!m_isLearningPeriod) {
-    NFD_LOG_INFO("Starting learning period");
-    m_isLearningPeriod = true;
-
-    scheduler::schedule(LEARNING_PERIOD, [this] {
-      this->endLearningPeriod();
-    });
-  }
-  else {
-    throw std::runtime_error("Tried to start learning period while one is already in progress");
-  }
-}
-
-void
-AsfStatistics::endLearningPeriod()
-{
-  NFD_LOG_DEBUG("Ending learning period");
-  m_isLearningPeriod = false;
 }
 
 const shared_ptr<Face>
