@@ -94,7 +94,6 @@ private:
 private:
   RttRecorder m_rttRecorder;
   MeasurementsAccessor& m_measurements;
-  shared_ptr<Face> m_lastUsedFace;
 
   bool m_isLearningPeriod;
   bool m_hasReceivedFirstInterest;

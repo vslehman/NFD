@@ -292,6 +292,7 @@ void
 AsfStatistics::startLearningPeriod()
 {
   if (!m_isLearningPeriod) {
+    NFD_LOG_INFO("Starting learning period");
     m_isLearningPeriod = true;
 
     scheduler::schedule(LEARNING_PERIOD, [this] {
@@ -306,21 +307,27 @@ AsfStatistics::startLearningPeriod()
 void
 AsfStatistics::endLearningPeriod()
 {
+  NFD_LOG_DEBUG("Ending learning period");
   m_isLearningPeriod = false;
 }
 
 const shared_ptr<Face>
 AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const Face& inFace)
 {
-  // Use the previously used face if it is returning data
-  if (m_lastUsedFace != nullptr) {
+  NFD_LOG_TRACE("Getting best face during learning period");
 
-    FaceInfo* info = getFaceInfo(fibEntry, *m_lastUsedFace);
+  NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
+
+  // Use the previously used face if it is returning data
+  if (namespaceInfo.lastUsedFace != nullptr) {
+
+    FaceInfo* info = getFaceInfo(fibEntry, *namespaceInfo.lastUsedFace);
 
     if (info == nullptr || info->rtt != RttStat::RTT_TIMEOUT) {
       // The last used face either has not collected measurements yet,
       // or is returning Data
-      return m_lastUsedFace;
+      NFD_LOG_DEBUG("Using previous face");
+      return namespaceInfo.lastUsedFace;
     }
   }
 
@@ -373,20 +380,23 @@ AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const
 
   if (lowestRttFace != nullptr) {
     // Switch to Face with lowest RTT
-    m_lastUsedFace = lowestRttFace;
+    NFD_LOG_DEBUG("Switching to lowest RTT face");
+    namespaceInfo.lastUsedFace = lowestRttFace;
   }
   else if (lowestCostFace != nullptr) {
     // otherwise, use the face with the lowest routing cost
     // that has not timed out
-    m_lastUsedFace = lowestCostFace;
+    NFD_LOG_DEBUG("Switching to lowest cost face");
+    namespaceInfo.lastUsedFace = lowestCostFace;
   }
   else {
     // If all faces have timed out, use the face with the
     // lowest routing cost
-    m_lastUsedFace = backupFace;
+    NFD_LOG_DEBUG("Switching to backup face because all faces have timed out");
+    namespaceInfo.lastUsedFace = backupFace;
   }
 
-  return m_lastUsedFace;
+  return namespaceInfo.lastUsedFace;
 }
 
 } // namespace experimental
