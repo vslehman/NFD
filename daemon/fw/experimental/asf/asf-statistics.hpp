@@ -49,6 +49,7 @@ class AsfStatistics : public StatisticsModule
 public:
   AsfStatistics(MeasurementsAccessor& measurements)
     : m_measurements(measurements)
+    , m_isLearningPeriodEnabled(false)
   {
   }
 
@@ -62,6 +63,12 @@ public:
   afterForwardInterest(const Interest& interest,
                        const fib::Entry& fibEntry,
                        const Face& face) DECL_OVERRIDE;
+
+  void
+  enableLearningPeriod()
+  {
+    m_isLearningPeriodEnabled = true;
+  }
 
 public:
   FaceInfo*
@@ -86,6 +93,8 @@ private:
 private:
   RttRecorder m_rttRecorder;
   MeasurementsAccessor& m_measurements;
+
+  bool m_isLearningPeriodEnabled;
 
   static const time::microseconds MEASUREMENTS_LIFETIME;
 };

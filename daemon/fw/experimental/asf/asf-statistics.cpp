@@ -73,8 +73,9 @@ AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 
   NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
 
-  // If the namespace is in the learning period, use the learning period rules
-  if (namespaceInfo.isLearningPeriod) {
+  // If the learning period is enabled and the namespace is in the learning period,
+  // use the learning period rules
+  if (m_isLearningPeriodEnabled && namespaceInfo.isLearningPeriod) {
     return getBestFaceDuringLearningPeriod(fibEntry, inFace);
   }
 
