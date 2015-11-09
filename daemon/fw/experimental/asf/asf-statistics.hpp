@@ -54,10 +54,10 @@ public:
   }
 
   void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data) DECL_OVERRIDE;
 
   const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace) DECL_OVERRIDE;
 
   virtual void
   afterForwardInterest(const Interest& interest,
