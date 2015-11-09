@@ -69,7 +69,7 @@ public:
 
 public:
   virtual const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace)
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace) DECL_OVERRIDE
   {
     shared_ptr<measurements::Entry> entry = m_measurements.get(fibEntry);
     shared_ptr<NamespaceInfo> info = entry->getOrCreateStrategyInfo<NamespaceInfo>();
