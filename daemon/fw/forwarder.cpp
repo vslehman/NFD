@@ -29,7 +29,7 @@
 #include "strategy.hpp"
 #include <boost/random/uniform_int_distribution.hpp>
 
-#include "experimental/asf/asf-strategy.hpp"
+#include "asf/asf-strategy.hpp"
 
 namespace nfd {
 
@@ -47,7 +47,7 @@ Forwarder::onConfig(const ConfigSection& configSection,
   for (const auto& pair : configSection) {
     if (pair.first == "asf-strategy") {
       fw::Strategy* strategy =
-        m_strategyChoice.getStrategy(fw::experimental::AsfStrategy::STRATEGY_NAME);
+        m_strategyChoice.getStrategy(fw::AsfStrategy::STRATEGY_NAME);
 
       if (strategy != nullptr) {
         strategy->onConfig(pair.second);

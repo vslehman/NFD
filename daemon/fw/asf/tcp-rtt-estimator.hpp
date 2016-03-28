@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,49 +23,63 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_STATISTICS_MODULE_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_STATISTICS_MODULE_HPP
+#ifndef NFD_DAEMON_FW_ASF_TCP_RTT_ESTIMATOR_HPP
+#define NFD_DAEMON_FW_ASF_TCP_RTT_ESTIMATOR_HPP
+
+#include "common.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
-class StatisticsModule
+/**
+ * \brief implements the Mean-Deviation RTT estimator
+ *
+ * reference: ns3::RttMeanDeviation
+ *
+ * This RttEstimator algorithm is designed for TCP, which is a continuous stream.
+ * NDN Interest-Data traffic is not always a continuous stream,
+ * so NDN may need a different RttEstimator.
+ * The design of a more suitable RttEstimator is a research question.
+ */
+class RttEstimator
 {
 public:
-  virtual void
-  afterReceiveInterest(const Face& inFace,
-                       const Interest& interest,
-                       shared_ptr<fib::Entry> fibEntry,
-                       shared_ptr<pit::Entry> pitEntry)
+  typedef time::microseconds Duration;
+
+  static Duration
+  getInitialRtt(void)
   {
+    return time::seconds(1);
   }
 
-  virtual void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data)
-  {
-  }
+  RttEstimator(uint16_t maxMultiplier = 16,
+               Duration minRto = time::milliseconds(1),
+               double gain = 0.125);
 
-  virtual void
-  beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry)
-  {
-  }
+  void
+  addMeasurement(Duration measure);
 
-  virtual void
-  afterForwardInterest(const Interest& interest,
-                       const fib::Entry& fibEntry,
-                       const Face& face)
-  {
-  }
+  void
+  incrementMultiplier();
 
-public:
-  virtual const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace) = 0;
+  void
+  doubleMultiplier();
 
+  Duration
+  computeRto() const;
+
+private:
+  uint16_t m_maxMultiplier;
+  double m_minRto;
+
+  double m_rtt;
+  double m_gain;
+  double m_variance;
+  uint16_t m_multiplier;
+  uint32_t m_nSamples;
 };
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_STATISTICS_MODULE_HPP
+#endif // NFD_DAEMON_FW_ASF_TCP_RTT_ESTIMATOR_HPP

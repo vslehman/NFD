@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,58 +23,59 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP
+#include "probing-module.hpp"
+#include "random.hpp"
 
-#include "tcp-rtt-estimator.hpp"
-#include "table/pit.hpp"
+#include <functional>
+#include <random>
+#include <boost/random/uniform_real_distribution.hpp>
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
-typedef double Rtt;
+NFD_LOG_INIT("ProbingModule");
 
-class RttStat
+double
+ProbingModule::getRandomNumber(double start, double end)
 {
-public:
-  RttStat()
-    : srtt(RTT_NO_MEASUREMENT)
-    , rtt(RTT_NO_MEASUREMENT)
-  {
+  if (!m_isGlobalSeedInitialized || !m_isNodeUidInitialized) {
+    NFD_LOG_WARN("Global seed or Node UID has not been initialized!");
+    BOOST_ASSERT(false);
   }
 
-public:
-  Rtt srtt;
-  Rtt rtt;
-  RttEstimator rttEstimator;
+  boost::random::uniform_real_distribution<double> distribution(start, end);
 
-  static const Rtt RTT_TIMEOUT;
-  static const Rtt RTT_NO_MEASUREMENT;
-};
+  return distribution(getGlobalRng());
+}
 
-class RttRecorder
+void
+ProbingModule::setGlobalSeed(uint64_t seed)
 {
-public:
-  void
-  record(RttStat& stat,
-         const shared_ptr<pit::Entry> pitEntry,
-         const ndn::Name& prefix,
-         const Face& inFace);
+  m_globalSeed = seed;
+  m_isGlobalSeedInitialized = true;
 
-public:
-  typedef time::microseconds Duration;
+  updateOverallSeed();
+}
 
-private:
-  double
-  computeSrtt(double previousSrtt, double currentRtt);
+void
+ProbingModule::setNodeUid(const std::string& uid)
+{
+  m_nodeUid = uid;
+  m_isNodeUidInitialized = true;
 
-  static const double ALPHA;
+  updateOverallSeed();
+}
 
-};
+void
+ProbingModule::updateOverallSeed()
+{
+  std::hash<std::string> hashFunction;
+  size_t hash = hashFunction(m_nodeUid);
 
-} // namespace experimental
+  size_t overallSeed = hash * m_globalSeed;
+
+  getGlobalRng().seed(overallSeed);
+}
+
 } // namespace fw
 } // namespace nfd
-
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_RTT_RECORDER_HPP

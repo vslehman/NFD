@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,15 +23,14 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
+#ifndef NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
+#define NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 
-#include "../rtt-recorder.hpp"
+#include "rtt-recorder.hpp"
 #include "fw/strategy-info.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
 /** \brief Strategy information for each face in a namespace
 */
@@ -129,8 +128,7 @@ public:
   static const time::seconds LEARNING_PERIOD;
 };
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_STRATEGY_MEASUREMENTS_HPP
+#endif // NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP

@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -26,12 +26,11 @@
 #include "asf-probing.hpp"
 
 #include "asf-statistics.hpp"
-#include "../rtt-recorder.hpp"
+#include "rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
 NFD_LOG_INIT("AsfProbing");
 
@@ -228,6 +227,5 @@ AsfProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFac
   throw std::runtime_error("Unable to find face to probe using probability!");
 }
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd

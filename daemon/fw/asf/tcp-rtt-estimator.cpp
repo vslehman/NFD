@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,61 +23,59 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "probing-module.hpp"
-#include "random.hpp"
-
-#include <functional>
-#include <random>
-#include <boost/random/uniform_real_distribution.hpp>
+#include "tcp-rtt-estimator.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
-NFD_LOG_INIT("ProbingModule");
-
-double
-ProbingModule::getRandomNumber(double start, double end)
+RttEstimator::RttEstimator(uint16_t maxMultiplier, Duration minRto, double gain)
+  : m_maxMultiplier(maxMultiplier)
+  , m_minRto(minRto.count())
+  , m_rtt(RttEstimator::getInitialRtt().count())
+  , m_gain(gain)
+  , m_variance(0)
+  , m_multiplier(1)
+  , m_nSamples(0)
 {
-  if (!m_isGlobalSeedInitialized || !m_isNodeUidInitialized) {
-    NFD_LOG_WARN("Global seed or Node UID has not been initialized!");
-    BOOST_ASSERT(false);
+}
+
+void
+RttEstimator::addMeasurement(Duration measure)
+{
+  double m = static_cast<double>(measure.count());
+  if (m_nSamples > 0) {
+    double err = m - m_rtt;
+    double gErr = err * m_gain;
+    m_rtt += gErr;
+    double difference = std::abs(err) - m_variance;
+    m_variance += difference * 2*m_gain;
+  } else {
+    m_rtt = m;
+    m_variance = m/2;
   }
-
-  boost::random::uniform_real_distribution<double> distribution(start, end);
-
-  return distribution(getGlobalRng());
+  ++m_nSamples;
+  m_multiplier = 1;
 }
 
 void
-ProbingModule::setGlobalSeed(uint64_t seed)
+RttEstimator::incrementMultiplier()
 {
-  m_globalSeed = seed;
-  m_isGlobalSeedInitialized = true;
-
-  updateOverallSeed();
+  m_multiplier = std::min(static_cast<uint16_t>(m_multiplier + 1), m_maxMultiplier);
 }
 
 void
-ProbingModule::setNodeUid(const std::string& uid)
+RttEstimator::doubleMultiplier()
 {
-  m_nodeUid = uid;
-  m_isNodeUidInitialized = true;
-
-  updateOverallSeed();
+  m_multiplier = std::min(static_cast<uint16_t>(m_multiplier * 2), m_maxMultiplier);
 }
 
-void
-ProbingModule::updateOverallSeed()
+RttEstimator::Duration
+RttEstimator::computeRto() const
 {
-  std::hash<std::string> hashFunction;
-  size_t hash = hashFunction(m_nodeUid);
-
-  size_t overallSeed = hash * m_globalSeed;
-
-  getGlobalRng().seed(overallSeed);
+  double rto = std::max(m_minRto, m_rtt + 4 * m_variance);
+  rto *= m_multiplier;
+  return Duration(static_cast<Duration::rep>(rto));
 }
 
-} // namespace nfd
 } // namespace fw
-} // namespace experimental
+} // namespace nfd
