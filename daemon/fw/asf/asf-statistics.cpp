@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -25,14 +25,13 @@
 
 #include "asf-statistics.hpp"
 
-#include "../rtt-recorder.hpp"
+#include "rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 #include "table/fib-entry.hpp"
 #include "table/measurements-accessor.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
 NFD_LOG_INIT("AsfStatistics");
 
@@ -373,6 +372,5 @@ AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const
   return namespaceInfo.lastUsedFace;
 }
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd

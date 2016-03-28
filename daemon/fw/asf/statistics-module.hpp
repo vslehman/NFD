@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,67 +23,47 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP
-
-#include "asf-statistics.hpp"
-#include "fw/retx-suppression-fixed.hpp"
-#include "fw/strategy.hpp"
-
-#include <unordered_set>
-#include <unordered_map>
+#ifndef NFD_DAEMON_FW_ASF_STATISTICS_MODULE_HPP
+#define NFD_DAEMON_FW_ASF_STATISTICS_MODULE_HPP
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
-class ProbingModule;
-
-/** \brief Adaptive SRTT-based Forwarding Strategy
- */
-class AsfStrategy : public Strategy
+class StatisticsModule
 {
 public:
-  AsfStrategy(Forwarder& forwarder, const Name& name = STRATEGY_NAME);
-
-  virtual
-  ~AsfStrategy();
-
-public: // triggers
   virtual void
   afterReceiveInterest(const Face& inFace,
                        const Interest& interest,
                        shared_ptr<fib::Entry> fibEntry,
-                       shared_ptr<pit::Entry> pitEntry) DECL_OVERRIDE;
+                       shared_ptr<pit::Entry> pitEntry)
+  {
+  }
 
   virtual void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
-                        const Face& inFace, const Data& data) DECL_OVERRIDE;
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data)
+  {
+  }
 
   virtual void
-  onConfig(const ConfigSection& configSection) DECL_OVERRIDE;
+  beforeExpirePendingInterest(shared_ptr<pit::Entry> pitEntry)
+  {
+  }
 
-private:
-  void
-  forwardInterest(const Interest& interest,
-                  const fib::Entry& fibEntry,
-                  shared_ptr<pit::Entry> pitEntry,
-                  shared_ptr<Face> outFace,
-                  bool wantNewNonce = false);
-
-private:
-  AsfStatistics m_stats;
-  std::unique_ptr<ProbingModule> m_probe;
-
-  RetxSuppressionFixed m_retxSuppression;
+  virtual void
+  afterForwardInterest(const Interest& interest,
+                       const fib::Entry& fibEntry,
+                       const Face& face)
+  {
+  }
 
 public:
-  static const Name STRATEGY_NAME;
-  static const time::seconds SUPPRESSION_TIME;
+  virtual const shared_ptr<Face>
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace) = 0;
+
 };
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_ASF_STRATEGY_HPP
+#endif // NFD_DAEMON_FW_ASF_STATISTICS_MODULE_HPP

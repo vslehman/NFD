@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,11 +23,10 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "strategy-measurements.hpp"
+#include "asf-measurements.hpp"
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
 NFD_LOG_INIT("StrategyMeasurements");
 
@@ -154,6 +153,5 @@ NamespaceInfo::endLearningPeriod()
   isLearningPeriod = false;
 }
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd

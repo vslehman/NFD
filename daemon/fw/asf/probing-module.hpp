@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  Regents of the University of California,
+ * Copyright (c) 2014-2016,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,8 +23,8 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_EXPERIMENTAL_PROBING_MODULE_HPP
-#define NFD_DAEMON_FW_EXPERIMENTAL_PROBING_MODULE_HPP
+#ifndef NFD_DAEMON_FW_ASF_PROBING_MODULE_HPP
+#define NFD_DAEMON_FW_ASF_PROBING_MODULE_HPP
 
 #include "common.hpp"
 #include "table/fib.hpp"
@@ -36,7 +36,6 @@ class Face;
 
 namespace nfd {
 namespace fw {
-namespace experimental {
 
 class ProbingModule
 {
@@ -108,8 +107,7 @@ private:
   bool m_isNodeUidInitialized;
 };
 
-} // namespace experimental
 } // namespace fw
 } // namespace nfd
 
-#endif // NFD_DAEMON_FW_EXPERIMENTAL_PROBING_MODULE_HPP
+#endif // NFD_DAEMON_FW_ASF_PROBING_MODULE_HPP
