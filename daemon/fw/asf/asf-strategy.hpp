@@ -60,9 +60,6 @@ public: // triggers
   beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
                         const Face& inFace, const Data& data) override;
 
-  virtual void
-  onConfig(const ConfigSection& configSection) override;
-
 private:
   void
   forwardInterest(const Interest& interest,

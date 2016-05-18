@@ -59,12 +59,6 @@ public:
   const ForwarderCounters&
   getCounters() const;
 
-  void
-  setConfigFile(ConfigFile& config);
-
-  void
-  onConfig(const ConfigSection& configSection, bool isDryRun, const std::string& filename);
-
 public: // faces
   FaceTable&
   getFaceTable();

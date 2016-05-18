@@ -178,8 +178,6 @@ Nfd::initializeManagement()
 
   m_validator->setConfigFile(config);
 
-  m_forwarder->setConfigFile(config);
-
   m_faceManager->setConfigFile(config);
 
   // parse config file
@@ -223,9 +221,6 @@ Nfd::reloadConfigFile()
   tablesConfig.setConfigFile(config);
 
   m_validator->setConfigFile(config);
-
-  m_forwarder->setConfigFile(config);
-
   m_faceManager->setConfigFile(config);
 
   if (!m_configFile.empty()) {

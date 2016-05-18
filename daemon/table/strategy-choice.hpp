@@ -63,12 +63,6 @@ public: // available Strategy types
   bool
   install(shared_ptr<fw::Strategy> strategy);
 
-  /** \brief get Strategy instance by strategyName
-   *  \param strategyName a versioned or unversioned strategyName
-   */
-  fw::Strategy*
-  getStrategy(const Name& strategyName) const;
-
 public: // Strategy Choice table
   /** \brief set strategy of prefix to be strategyName
    *  \param prefix the name prefix for which \p strategyName should be used
@@ -152,6 +146,12 @@ public: // enumeration
   end() const;
 
 private:
+  /** \brief get Strategy instance by strategyName
+   *  \param strategyName a versioned or unversioned strategyName
+   */
+  fw::Strategy*
+  getStrategy(const Name& strategyName) const;
+
   void
   setDefaultStrategy(shared_ptr<fw::Strategy> strategy);
 

@@ -30,32 +30,9 @@
 #include "strategy.hpp"
 #include <boost/random/uniform_int_distribution.hpp>
 
-#include "asf/asf-strategy.hpp"
-
 namespace nfd {
 
 NFD_LOG_INIT("Forwarder");
-
-void
-Forwarder::onConfig(const ConfigSection& configSection,
-                    bool isDryRun,
-                    const std::string& filename)
-{
-  if (isDryRun) {
-    return;
-  }
-
-  for (const auto& pair : configSection) {
-    if (pair.first == "asf-strategy") {
-      fw::Strategy* strategy =
-        m_strategyChoice.getStrategy(fw::AsfStrategy::STRATEGY_NAME);
-
-      if (strategy != nullptr) {
-        strategy->onConfig(pair.second);
-      }
-    }
-  }
-}
 
 using fw::Strategy;
 
@@ -118,12 +95,6 @@ Forwarder::startProcessNack(Face& face, const lp::Nack& nack)
   }
 
   this->onIncomingNack(face, nack);
-}
-
-void
-Forwarder::setConfigFile(ConfigFile& config)
-{
-  config.addSectionHandler("forwarder", bind(&Forwarder::onConfig, this, _1, _2, _3));
 }
 
 void

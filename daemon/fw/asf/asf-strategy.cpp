@@ -119,17 +119,6 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 }
 
 void
-AsfStrategy::onConfig(const ConfigSection& configSection)
-{
-  for (const auto& pair : configSection) {
-    if (pair.first == "probing-interval") {
-      uint32_t interval = pair.second.get_value<uint32_t>();
-      m_probe.setProbingInterval(interval);
-    }
-  }
-}
-
-void
 AsfStrategy::forwardInterest(const Interest& interest,
                              const fib::Entry& fibEntry,
                              shared_ptr<pit::Entry> pitEntry,
