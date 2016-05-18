@@ -25,7 +25,7 @@
 
 #include "asf-strategy.hpp"
 
-#include "measurement-helper.hpp"
+#include "asf-measurements.hpp"
 #include "random.hpp"
 #include "core/logger.hpp"
 
@@ -33,6 +33,67 @@
 
 namespace nfd {
 namespace fw {
+
+class MeasurementHelper
+{
+public:
+  static FaceInfo*
+  getFaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry, const Face& face)
+  {
+    NamespaceInfo& info = getOrCreateNamespaceInfo(measurements, fibEntry);
+
+    return info.getFaceInfo(fibEntry, face);
+  }
+
+  static FaceInfo&
+  getOrCreateFaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry, const Face& face)
+  {
+    NamespaceInfo& info = getOrCreateNamespaceInfo(measurements, fibEntry);
+
+    return info.getOrCreateFaceInfo(fibEntry, face);
+  }
+
+  static shared_ptr<NamespaceInfo>
+  getNamespaceInfo(MeasurementsAccessor& measurements, const ndn::Name& prefix)
+  {
+    shared_ptr<measurements::Entry> me = measurements.findLongestPrefixMatch(prefix);
+
+    if (me == nullptr) {
+      //NFD_LOG_WARN("Could not find measurements entry for " << prefix);
+      return nullptr;
+    }
+
+    // Set or update entry lifetime
+    measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+
+    shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
+    BOOST_ASSERT(info != nullptr);
+
+    return info;
+  }
+
+  static NamespaceInfo&
+  getOrCreateNamespaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry)
+  {
+    shared_ptr<measurements::Entry> me = measurements.get(fibEntry);
+
+    // Set or update entry lifetime
+    measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+
+    shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
+    BOOST_ASSERT(info != nullptr);
+
+    return *info;
+  }
+
+private:
+  static const time::microseconds MEASUREMENTS_LIFETIME;
+};
+
+const time::microseconds MeasurementHelper::MEASUREMENTS_LIFETIME = time::seconds(300);
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 const time::seconds AsfStrategy::ProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(60);
 
@@ -467,9 +528,6 @@ AsfStrategy::onTimeout(const ndn::Name& interestName, FaceId faceId)
                              " FaceId: " + std::to_string(faceId));
   }
 }
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
 
 } // namespace fw
 } // namespace nfd

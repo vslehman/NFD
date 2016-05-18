@@ -28,11 +28,12 @@
 
 #include "fw/retx-suppression-exponential.hpp"
 #include "fw/strategy.hpp"
-#include "asf-measurements.hpp"
 #include "rtt-recorder.hpp"
 
 namespace nfd {
 namespace fw {
+
+class FaceInfo;
 
 /** \brief Adaptive SRTT-based Forwarding Strategy
  */
