@@ -53,15 +53,15 @@ public:
   }
 
   void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data) DECL_OVERRIDE;
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data) override;
 
   const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace) DECL_OVERRIDE;
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace) override;
 
   virtual void
   afterForwardInterest(const Interest& interest,
                        const fib::Entry& fibEntry,
-                       const Face& face) DECL_OVERRIDE;
+                       const Face& face) override;
 
   void
   enableLearningPeriod()

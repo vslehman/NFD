@@ -49,19 +49,19 @@ public:
 
   virtual void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                const time::milliseconds& interval) DECL_OVERRIDE;
+                const time::milliseconds& interval) override;
 
   virtual shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
-                 const Face& faceUsed) DECL_OVERRIDE;
+                 const Face& faceUsed) override;
 
   bool
-  isProbingNeeded(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;
+  isProbingNeeded(shared_ptr<fib::Entry> fibEntry) override;
 
   void
-  afterProbe(shared_ptr<fib::Entry> fibEntry) DECL_OVERRIDE;
+  afterProbe(shared_ptr<fib::Entry> fibEntry) override;
 
 private:
   // Used to associate FaceInfo with the face in a NextHop
