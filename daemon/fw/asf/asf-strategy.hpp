@@ -26,13 +26,10 @@
 #ifndef NFD_DAEMON_FW_ASF_STRATEGY_HPP
 #define NFD_DAEMON_FW_ASF_STRATEGY_HPP
 
-#include "fw/retx-suppression-fixed.hpp"
+#include "fw/retx-suppression-exponential.hpp"
 #include "fw/strategy.hpp"
 #include "asf-measurements.hpp"
 #include "rtt-recorder.hpp"
-
-#include <unordered_set>
-#include <unordered_map>
 
 namespace nfd {
 namespace fw {
@@ -71,10 +68,6 @@ private:
 
   void
   onTimeout(const ndn::Name& interestName, FaceId faceId);
-
-private:
-  RetxSuppressionFixed m_retxSuppression;
-  RttRecorder m_rttRecorder;
 
 private:
   /** \brief ASF Probing Module
@@ -136,9 +129,14 @@ private:
 
   ProbingModule m_probing;
 
+private:
+  RetxSuppressionExponential m_retxSuppression;
+  RttRecorder m_rttRecorder;
+
 public:
   static const Name STRATEGY_NAME;
-  static const time::seconds SUPPRESSION_TIME;
+  static const time::milliseconds RETX_SUPPRESSION_INITIAL;
+  static const time::milliseconds RETX_SUPPRESSION_MAX;
 };
 
 } // namespace fw

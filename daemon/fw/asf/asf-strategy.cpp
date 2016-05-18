@@ -199,14 +199,17 @@ AsfStrategy::ProbingModule::getRandomNumber(double start, double end)
 NFD_LOG_INIT("AsfStrategy");
 
 const Name AsfStrategy::STRATEGY_NAME("ndn:/localhost/nfd/strategy/asf/%FD%01");
-const time::seconds AsfStrategy::SUPPRESSION_TIME = time::seconds(2);
+const time::milliseconds AsfStrategy::RETX_SUPPRESSION_INITIAL(10);
+const time::milliseconds AsfStrategy::RETX_SUPPRESSION_MAX(250);
 
 NFD_REGISTER_STRATEGY(AsfStrategy);
 
 AsfStrategy::AsfStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
-  , m_retxSuppression(SUPPRESSION_TIME)
   , m_probing(getMeasurements())
+  , m_retxSuppression(RETX_SUPPRESSION_INITIAL,
+                      RetxSuppressionExponential::DEFAULT_MULTIPLIER,
+                      RETX_SUPPRESSION_MAX)
 {
 }
 
