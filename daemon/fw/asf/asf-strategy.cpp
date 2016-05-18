@@ -41,9 +41,9 @@ NFD_REGISTER_STRATEGY(AsfStrategy);
 AsfStrategy::AsfStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
   , m_stats(this->getMeasurements())
-  , m_probe(std::unique_ptr<ProbingModule>(new AsfProbingModule(m_stats)))
   , m_retxSuppression(SUPPRESSION_TIME)
 {
+  m_probe.setStatsModule(m_stats);
 }
 
 AsfStrategy::~AsfStrategy()
@@ -95,8 +95,8 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
   forwardInterest(interest, *fibEntry, pitEntry, faceToUse);
 
   // If necessary, send probe
-  if (m_probe->isProbingNeeded(fibEntry)) {
-    shared_ptr<Face> faceToProbe = m_probe->getFaceToProbe(inFace, interest, fibEntry, *faceToUse);
+  if (m_probe.isProbingNeeded(fibEntry)) {
+    shared_ptr<Face> faceToProbe = m_probe.getFaceToProbe(inFace, interest, fibEntry, *faceToUse);
 
     if (faceToProbe != nullptr) {
       NFD_LOG_DEBUG("Sending probe for " << fibEntry->getPrefix()
@@ -105,7 +105,7 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
       bool wantNewNonce = true;
       forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, wantNewNonce);
 
-      m_probe->afterProbe(fibEntry);
+      m_probe.afterProbe(fibEntry);
     }
   }
 }
@@ -124,15 +124,15 @@ AsfStrategy::onConfig(const ConfigSection& configSection)
   for (const auto& pair : configSection) {
     if (pair.first == "global-seed") {
       uint64_t seed = pair.second.get_value<uint64_t>();
-      m_probe->setGlobalSeed(seed);
+      m_probe.setGlobalSeed(seed);
     }
     else if (pair.first == "node-uid") {
       std::string uid = pair.second.get_value<std::string>();
-      m_probe->setNodeUid(uid);
+      m_probe.setNodeUid(uid);
     }
     else if (pair.first == "probing-interval") {
       uint32_t interval = pair.second.get_value<uint32_t>();
-      m_probe->setProbingInterval(interval);
+      m_probe.setProbingInterval(interval);
     }
   }
 }

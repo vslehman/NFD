@@ -34,6 +34,48 @@ namespace fw {
 
 NFD_LOG_INIT("AsfProbing");
 
+double
+AsfProbingModule::getRandomNumber(double start, double end)
+{
+  if (!m_isGlobalSeedInitialized || !m_isNodeUidInitialized) {
+    NFD_LOG_WARN("Global seed or Node UID has not been initialized!");
+    BOOST_ASSERT(false);
+  }
+
+  boost::random::uniform_real_distribution<double> distribution(start, end);
+
+  return distribution(getGlobalRng());
+}
+
+void
+AsfProbingModule::setGlobalSeed(uint64_t seed)
+{
+  m_globalSeed = seed;
+  m_isGlobalSeedInitialized = true;
+
+  updateOverallSeed();
+}
+
+void
+AsfProbingModule::setNodeUid(const std::string& uid)
+{
+  m_nodeUid = uid;
+  m_isNodeUidInitialized = true;
+
+  updateOverallSeed();
+}
+
+void
+AsfProbingModule::updateOverallSeed()
+{
+  std::hash<std::string> hashFunction;
+  size_t hash = hashFunction(m_nodeUid);
+
+  size_t overallSeed = hash * m_globalSeed;
+
+  getGlobalRng().seed(overallSeed);
+}
+
 //==============================================================================
 // Probability Function #1
 //------------------------------------------------------------------------------
@@ -61,14 +103,25 @@ getProbabilityFunction2(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const time::seconds AsfProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(10);
+const time::seconds AsfProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(60);
 
-AsfProbingModule::AsfProbingModule(AsfStatistics& stats)
-  : ProbingModule(DEFAULT_PROBING_INTERVAL)
-  , m_probabilityFunction(&getProbabilityFunction1)
-  , m_stats(stats)
+AsfProbingModule::AsfProbingModule()
+  : m_probabilityFunction(&getProbabilityFunction1)
+  , m_isProbingNeeded(true)
+  , m_probingInterval(DEFAULT_PROBING_INTERVAL)
+  , m_globalSeed(0)
+  , m_nodeUid("NULL")
+  , m_isGlobalSeedInitialized(false)
+  , m_isNodeUidInitialized(false)
 {
   BOOST_ASSERT(m_probabilityFunction != nullptr);
+  updateOverallSeed();
+}
+
+void
+AsfProbingModule::setStatsModule(AsfStatistics& stats)
+{
+  m_stats = &stats;
 }
 
 void
@@ -81,7 +134,7 @@ AsfProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::mil
   // Set the probing flag for the namespace to true after PROBING_INTERVAL
   // period of time
   scheduler::schedule(interval, [this, prefix] () {
-    shared_ptr<NamespaceInfo> info = this->m_stats.getNamespaceInfo(prefix);
+    shared_ptr<NamespaceInfo> info = this->m_stats->getNamespaceInfo(prefix);
 
     if (info == nullptr) {
       NFD_LOG_DEBUG("FibEntry for " << prefix << " has been removed");
@@ -129,7 +182,7 @@ AsfProbingModule::getFaceToProbe(const Face& inFace,
       continue;
     }
 
-    FaceInfo* info = m_stats.getFaceInfo(*fibEntry, *hop.getFace());
+    FaceInfo* info = m_stats->getFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
     if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
@@ -153,7 +206,7 @@ bool
 AsfProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 {
   // Return the probing flag status for a namespace
-  NamespaceInfo& info = m_stats.getOrCreateNamespaceInfo(*fibEntry);
+  NamespaceInfo& info = m_stats->getOrCreateNamespaceInfo(*fibEntry);
 
   // If a first probe has not been scheduled for a namespace
   if (!info.hasFirstProbeBeenScheduled) {
@@ -182,7 +235,7 @@ AsfProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 {
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
-  NamespaceInfo& info = m_stats.getOrCreateNamespaceInfo(*fibEntry);
+  NamespaceInfo& info = m_stats->getOrCreateNamespaceInfo(*fibEntry);
   info.isProbingNeeded = false;
 
   scheduleProbe(fibEntry, getProbingInterval());

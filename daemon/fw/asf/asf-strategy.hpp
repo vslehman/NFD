@@ -29,6 +29,7 @@
 #include "asf-statistics.hpp"
 #include "fw/retx-suppression-fixed.hpp"
 #include "fw/strategy.hpp"
+#include "asf-probing.hpp"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -72,7 +73,7 @@ private:
 
 private:
   AsfStatistics m_stats;
-  std::unique_ptr<ProbingModule> m_probe;
+  AsfProbingModule m_probe;
 
   RetxSuppressionFixed m_retxSuppression;
 

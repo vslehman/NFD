@@ -29,9 +29,14 @@
 #include "common.hpp"
 #include "asf-statistics.hpp"
 #include "asf-measurements.hpp"
-#include "probing-module.hpp"
 #include "table/fib.hpp"
 #include "table/pit.hpp"
+
+#include "random.hpp"
+
+#include <functional>
+#include <random>
+#include <boost/random/uniform_real_distribution.hpp>
 
 namespace ndn {
 class Face;
@@ -42,26 +47,29 @@ namespace fw {
 
 /** \brief ASF Probing Module
  */
-class AsfProbingModule : public ProbingModule
+class AsfProbingModule
 {
 public:
-  AsfProbingModule(AsfStatistics& stats);
+  AsfProbingModule();
+
+  void
+  setStatsModule(AsfStatistics& stats);
 
   virtual void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                const time::milliseconds& interval) override;
+                const time::milliseconds& interval);
 
   virtual shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
-                 const Face& faceUsed) override;
+                 const Face& faceUsed);
 
   bool
-  isProbingNeeded(shared_ptr<fib::Entry> fibEntry) override;
+  isProbingNeeded(shared_ptr<fib::Entry> fibEntry);
 
   void
-  afterProbe(shared_ptr<fib::Entry> fibEntry) override;
+  afterProbe(shared_ptr<fib::Entry> fibEntry);
 
 private:
   // Used to associate FaceInfo with the face in a NextHop
@@ -76,8 +84,48 @@ private:
 
   const ProbabilityFunction m_probabilityFunction;
 
+public:
+  void
+  setGlobalSeed(uint64_t seed);
+
+  void
+  setNodeUid(const std::string& uid);
+
+  void
+  setProbingInterval(uint32_t interval)
+  {
+    m_probingInterval = time::seconds(interval);
+  }
+
+  const time::seconds&
+  getProbingInterval() const
+  {
+    return m_probingInterval;
+  }
+
+PUBLIC_WITH_TESTS_ELSE_PROTECTED:
+  double
+  getRandomNumber(double start, double end);
+
 private:
-  AsfStatistics& m_stats;
+  void
+  updateOverallSeed();
+
+protected:
+  bool m_isProbingNeeded;
+
+private:
+  time::seconds m_probingInterval;
+
+  // Random number generation
+  uint64_t m_globalSeed;
+  std::string m_nodeUid;
+
+  bool m_isGlobalSeedInitialized;
+  bool m_isNodeUidInitialized;
+
+private:
+  AsfStatistics* m_stats;
 
   static const time::seconds DEFAULT_PROBING_INTERVAL;
 };
