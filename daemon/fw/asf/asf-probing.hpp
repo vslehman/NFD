@@ -27,7 +27,6 @@
 #define NFD_DAEMON_FW_ASF_PROBING_HPP
 
 #include "common.hpp"
-#include "asf-statistics.hpp"
 #include "asf-measurements.hpp"
 #include "table/fib.hpp"
 #include "table/pit.hpp"
@@ -51,9 +50,6 @@ class AsfProbingModule
 {
 public:
   AsfProbingModule();
-
-  void
-  setStatsModule(AsfStatistics& stats);
 
   void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
@@ -105,8 +101,6 @@ protected:
 
 private:
   time::seconds m_probingInterval;
-
-  AsfStatistics* m_stats;
 
   static const time::seconds DEFAULT_PROBING_INTERVAL;
 };

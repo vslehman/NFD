@@ -25,7 +25,7 @@
 
 #include "asf-probing.hpp"
 
-#include "asf-statistics.hpp"
+#include "measurement-helper.hpp"
 #include "rtt-recorder.hpp"
 #include "core/scheduler.hpp"
 
@@ -68,12 +68,6 @@ AsfProbingModule::AsfProbingModule()
 }
 
 void
-AsfProbingModule::setStatsModule(AsfStatistics& stats)
-{
-  m_stats = &stats;
-}
-
-void
 AsfProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseconds& interval)
 {
   ndn::Name prefix = fibEntry->getPrefix();
@@ -83,7 +77,7 @@ AsfProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::mil
   // Set the probing flag for the namespace to true after PROBING_INTERVAL
   // period of time
   scheduler::schedule(interval, [this, prefix] () {
-    shared_ptr<NamespaceInfo> info = this->m_stats->getNamespaceInfo(prefix);
+    shared_ptr<NamespaceInfo> info = MeasurementHelper::getNamespaceInfo(getMeasurements(), prefix);
 
     if (info == nullptr) {
       NFD_LOG_DEBUG("FibEntry for " << prefix << " has been removed");
@@ -131,7 +125,7 @@ AsfProbingModule::getFaceToProbe(const Face& inFace,
       continue;
     }
 
-    FaceInfo* info = m_stats->getFaceInfo(*fibEntry, *hop.getFace());
+    FaceInfo* info = MeasurementHelper::getFaceInfo(getMeasurements(), *fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
     if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
@@ -155,7 +149,7 @@ bool
 AsfProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 {
   // Return the probing flag status for a namespace
-  NamespaceInfo& info = m_stats->getOrCreateNamespaceInfo(*fibEntry);
+  NamespaceInfo& info = MeasurementHelper::getOrCreateNamespaceInfo(getMeasurements(), *fibEntry);
 
   // If a first probe has not been scheduled for a namespace
   if (!info.hasFirstProbeBeenScheduled) {
@@ -184,7 +178,7 @@ AsfProbingModule::afterProbe(shared_ptr<fib::Entry> fibEntry)
 {
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
-  NamespaceInfo& info = m_stats->getOrCreateNamespaceInfo(*fibEntry);
+  NamespaceInfo& info = MeasurementHelper::getOrCreateNamespaceInfo(getMeasurements(), *fibEntry);
   info.isProbingNeeded = false;
 
   scheduleProbe(fibEntry, getProbingInterval());

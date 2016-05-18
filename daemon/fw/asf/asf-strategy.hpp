@@ -26,10 +26,10 @@
 #ifndef NFD_DAEMON_FW_ASF_STRATEGY_HPP
 #define NFD_DAEMON_FW_ASF_STRATEGY_HPP
 
-#include "asf-statistics.hpp"
 #include "fw/retx-suppression-fixed.hpp"
 #include "fw/strategy.hpp"
 #include "asf-probing.hpp"
+#include "rtt-recorder.hpp"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -68,11 +68,16 @@ private:
                   shared_ptr<Face> outFace,
                   bool wantNewNonce = false);
 
-private:
-  AsfStatistics m_stats;
-  AsfProbingModule m_probe;
+  const shared_ptr<Face>
+  getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& inFace);
 
+  void
+  onTimeout(const ndn::Name& interestName, FaceId faceId);
+
+private:
+  AsfProbingModule m_probe;
   RetxSuppressionFixed m_retxSuppression;
+  RttRecorder m_rttRecorder;
 
 public:
   static const Name STRATEGY_NAME;

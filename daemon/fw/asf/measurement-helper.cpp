@@ -23,69 +23,12 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_FW_ASF_STATISTICS_HPP
-#define NFD_DAEMON_FW_ASF_STATISTICS_HPP
-
-#include "rtt-recorder.hpp"
-#include "asf-measurements.hpp"
-#include "fw/strategy-info.hpp"
-#include "table/pit.hpp"
+#include "measurement-helper.hpp"
 
 namespace nfd {
-
-class MeasurementsAccessor;
-
-namespace fib {
-class Entry;
-class NextHop;
-}
-
 namespace fw {
 
-class AsfStatistics
-{
-public:
-  AsfStatistics(MeasurementsAccessor& measurements)
-    : m_measurements(measurements)
-  {
-  }
-
-  void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
-
-  const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
-
-  virtual void
-  afterForwardInterest(const Interest& interest,
-                       const fib::Entry& fibEntry,
-                       const Face& face);
-
-public:
-  FaceInfo*
-  getFaceInfo(const fib::Entry& fibEntry, const Face& face);
-
-  NamespaceInfo&
-  getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
-
-  shared_ptr<NamespaceInfo>
-  getNamespaceInfo(const ndn::Name& prefix);
-
-private:
-  void
-  onTimeout(const ndn::Name& interestName, FaceId faceId);
-
-  FaceInfo&
-  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
-
-private:
-  RttRecorder m_rttRecorder;
-  MeasurementsAccessor& m_measurements;
-
-  static const time::microseconds MEASUREMENTS_LIFETIME;
-};
+const time::microseconds MeasurementHelper::MEASUREMENTS_LIFETIME = time::seconds(300);
 
 } // namespace fw
 } // namespace nfd
-
-#endif // NFD_DAEMON_FW_ASF_STATISTICS_HPP

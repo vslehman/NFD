@@ -30,7 +30,7 @@ namespace fw {
 
 NFD_LOG_INIT("StrategyMeasurements");
 
-const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(30);
+const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(300);
 
 FaceInfo::FaceInfo()
   : m_isTimeoutScheduled(false)
