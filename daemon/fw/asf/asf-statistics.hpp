@@ -27,7 +27,6 @@
 #define NFD_DAEMON_FW_ASF_STATISTICS_HPP
 
 #include "rtt-recorder.hpp"
-#include "statistics-module.hpp"
 #include "asf-measurements.hpp"
 #include "fw/strategy-info.hpp"
 #include "table/pit.hpp"
@@ -43,7 +42,7 @@ class NextHop;
 
 namespace fw {
 
-class AsfStatistics : public StatisticsModule
+class AsfStatistics
 {
 public:
   AsfStatistics(MeasurementsAccessor& measurements)
@@ -52,15 +51,15 @@ public:
   }
 
   void
-  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data) override;
+  beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry, const Face& inFace, const Data& data);
 
   const shared_ptr<Face>
-  getBestFace(const fib::Entry& fibEntry, const Face& inFace) override;
+  getBestFace(const fib::Entry& fibEntry, const Face& inFace);
 
   virtual void
   afterForwardInterest(const Interest& interest,
                        const fib::Entry& fibEntry,
-                       const Face& face) override;
+                       const Face& face);
 
 public:
   FaceInfo*
