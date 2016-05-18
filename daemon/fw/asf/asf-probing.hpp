@@ -55,11 +55,11 @@ public:
   void
   setStatsModule(AsfStatistics& stats);
 
-  virtual void
+  void
   scheduleProbe(shared_ptr<fib::Entry> fibEntry,
                 const time::milliseconds& interval);
 
-  virtual shared_ptr<Face>
+  shared_ptr<Face>
   getFaceToProbe(const Face& inFace,
                  const Interest& interest,
                  shared_ptr<fib::Entry> fibEntry,
@@ -70,6 +70,18 @@ public:
 
   void
   afterProbe(shared_ptr<fib::Entry> fibEntry);
+
+  void
+  setProbingInterval(uint32_t interval)
+  {
+    m_probingInterval = time::seconds(interval);
+  }
+
+  const time::seconds&
+  getProbingInterval() const
+  {
+    return m_probingInterval;
+  }
 
 private:
   // Used to associate FaceInfo with the face in a NextHop
@@ -84,32 +96,9 @@ private:
 
   const ProbabilityFunction m_probabilityFunction;
 
-public:
-  void
-  setGlobalSeed(uint64_t seed);
-
-  void
-  setNodeUid(const std::string& uid);
-
-  void
-  setProbingInterval(uint32_t interval)
-  {
-    m_probingInterval = time::seconds(interval);
-  }
-
-  const time::seconds&
-  getProbingInterval() const
-  {
-    return m_probingInterval;
-  }
-
 PUBLIC_WITH_TESTS_ELSE_PROTECTED:
   double
   getRandomNumber(double start, double end);
-
-private:
-  void
-  updateOverallSeed();
 
 protected:
   bool m_isProbingNeeded;
@@ -117,14 +106,6 @@ protected:
 private:
   time::seconds m_probingInterval;
 
-  // Random number generation
-  uint64_t m_globalSeed;
-  std::string m_nodeUid;
-
-  bool m_isGlobalSeedInitialized;
-  bool m_isNodeUidInitialized;
-
-private:
   AsfStatistics* m_stats;
 
   static const time::seconds DEFAULT_PROBING_INTERVAL;

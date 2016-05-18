@@ -37,47 +37,13 @@ NFD_LOG_INIT("AsfProbing");
 double
 AsfProbingModule::getRandomNumber(double start, double end)
 {
-  if (!m_isGlobalSeedInitialized || !m_isNodeUidInitialized) {
-    NFD_LOG_WARN("Global seed or Node UID has not been initialized!");
-    BOOST_ASSERT(false);
-  }
-
   boost::random::uniform_real_distribution<double> distribution(start, end);
 
   return distribution(getGlobalRng());
 }
 
-void
-AsfProbingModule::setGlobalSeed(uint64_t seed)
-{
-  m_globalSeed = seed;
-  m_isGlobalSeedInitialized = true;
-
-  updateOverallSeed();
-}
-
-void
-AsfProbingModule::setNodeUid(const std::string& uid)
-{
-  m_nodeUid = uid;
-  m_isNodeUidInitialized = true;
-
-  updateOverallSeed();
-}
-
-void
-AsfProbingModule::updateOverallSeed()
-{
-  std::hash<std::string> hashFunction;
-  size_t hash = hashFunction(m_nodeUid);
-
-  size_t overallSeed = hash * m_globalSeed;
-
-  getGlobalRng().seed(overallSeed);
-}
-
 //==============================================================================
-// Probability Function #1
+// Probability Function
 //------------------------------------------------------------------------------
 // p = n + 1 - j ; n: # faces
 //     ---------
@@ -86,18 +52,6 @@ double
 getProbabilityFunction1(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
 {
   return ((double)(nFaces + 1 - rank))/rankSum;
-}
-
-//==============================================================================
-// Probability Function #2
-//------------------------------------------------------------------------------
-// p =  2^(n - j)  ; n: # faces
-//     -----------
-//      (2^n) - 1
-double
-getProbabilityFunction2(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
-{
-  return std::pow(2, nFaces - rank)/(std::pow(2, nFaces) - 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,13 +63,8 @@ AsfProbingModule::AsfProbingModule()
   : m_probabilityFunction(&getProbabilityFunction1)
   , m_isProbingNeeded(true)
   , m_probingInterval(DEFAULT_PROBING_INTERVAL)
-  , m_globalSeed(0)
-  , m_nodeUid("NULL")
-  , m_isGlobalSeedInitialized(false)
-  , m_isNodeUidInitialized(false)
 {
   BOOST_ASSERT(m_probabilityFunction != nullptr);
-  updateOverallSeed();
 }
 
 void

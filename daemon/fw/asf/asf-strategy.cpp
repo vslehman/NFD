@@ -122,15 +122,7 @@ void
 AsfStrategy::onConfig(const ConfigSection& configSection)
 {
   for (const auto& pair : configSection) {
-    if (pair.first == "global-seed") {
-      uint64_t seed = pair.second.get_value<uint64_t>();
-      m_probe.setGlobalSeed(seed);
-    }
-    else if (pair.first == "node-uid") {
-      std::string uid = pair.second.get_value<std::string>();
-      m_probe.setNodeUid(uid);
-    }
-    else if (pair.first == "probing-interval") {
+    if (pair.first == "probing-interval") {
       uint32_t interval = pair.second.get_value<uint32_t>();
       m_probe.setProbingInterval(interval);
     }
