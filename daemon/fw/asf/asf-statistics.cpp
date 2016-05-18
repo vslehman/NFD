@@ -70,14 +70,6 @@ AsfStatistics::getBestFace(const fib::Entry& fibEntry, const Face& inFace)
 {
   NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
 
-  NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
-
-  // If the learning period is enabled and the namespace is in the learning period,
-  // use the learning period rules
-  if (m_isLearningPeriodEnabled && namespaceInfo.isLearningPeriod) {
-    return getBestFaceDuringLearningPeriod(fibEntry, inFace);
-  }
-
   typedef std::function<bool(const FaceStats&, const FaceStats&)> FaceStatsPredicate;
   typedef std::set<FaceStats, FaceStatsPredicate> FaceStatsSet;
 
@@ -282,94 +274,6 @@ AsfStatistics::getNamespaceInfo(const ndn::Name& prefix)
   BOOST_ASSERT(info != nullptr);
 
   return info;
-}
-
-const shared_ptr<Face>
-AsfStatistics::getBestFaceDuringLearningPeriod(const fib::Entry& fibEntry, const Face& inFace)
-{
-  NFD_LOG_TRACE("Getting best face during learning period");
-
-  NamespaceInfo& namespaceInfo = getOrCreateNamespaceInfo(fibEntry);
-
-  // Use the previously used face if it is returning data
-  if (namespaceInfo.lastUsedFace != nullptr) {
-
-    FaceInfo* info = getFaceInfo(fibEntry, *namespaceInfo.lastUsedFace);
-
-    if (info == nullptr || info->rtt != RttStat::RTT_TIMEOUT) {
-      // The last used face either has not collected measurements yet,
-      // or is returning Data
-      NFD_LOG_DEBUG("Using previous face");
-      return namespaceInfo.lastUsedFace;
-    }
-  }
-
-  // If the primary path has failed, attempt to switch to the face with
-  // the lowest RTT. If there are no faces returning Data, switch to the
-  // face that has the lowest routing cost and has not timed out.
-  // If all faces have timed out, default to the lowest routing cost face
-
-  shared_ptr<Face> lowestRttFace;
-  Rtt lowestRtt;
-
-  shared_ptr<Face> lowestCostFace;
-  shared_ptr<Face> backupFace;
-
-  for (const fib::NextHop& hop : fibEntry.getNextHops()) {
-
-    // Don't foward back to the inFace
-    if (hop.getFace()->getId() == inFace.getId()) {
-      continue;
-    }
-
-    // Save the lowest cost face in case all others also timed out
-    if (backupFace == nullptr) {
-      backupFace = hop.getFace();
-    }
-
-    FaceInfo* info = getFaceInfo(fibEntry, *hop.getFace());
-
-    if (info == nullptr || info->rtt == RttStat::RTT_NO_MEASUREMENT) {
-      // The face has not yet collected measurements
-      if (lowestCostFace == nullptr) {
-        // If lowestCostFace is not yet assigned, the current face must
-        // be the lowest cost face that hasn't timed out since fib::NextHops
-        // are sorted by routing cost
-        lowestCostFace = hop.getFace();
-      }
-    }
-    else if (info->rtt == RttStat::RTT_TIMEOUT) {
-      // This face timed out on the previous Interest
-      continue;
-    }
-    else {
-      // The last Interest returned data
-      if (lowestRttFace == nullptr || (info->rtt < lowestRtt)) {
-        lowestRttFace = hop.getFace();
-        lowestRtt = info->rtt;
-      }
-    }
-  }
-
-  if (lowestRttFace != nullptr) {
-    // Switch to Face with lowest RTT
-    NFD_LOG_DEBUG("Switching to lowest RTT face");
-    namespaceInfo.lastUsedFace = lowestRttFace;
-  }
-  else if (lowestCostFace != nullptr) {
-    // otherwise, use the face with the lowest routing cost
-    // that has not timed out
-    NFD_LOG_DEBUG("Switching to lowest cost face");
-    namespaceInfo.lastUsedFace = lowestCostFace;
-  }
-  else {
-    // If all faces have timed out, use the face with the
-    // lowest routing cost
-    NFD_LOG_DEBUG("Switching to backup face because all faces have timed out");
-    namespaceInfo.lastUsedFace = backupFace;
-  }
-
-  return namespaceInfo.lastUsedFace;
 }
 
 } // namespace fw

@@ -134,14 +134,6 @@ AsfStrategy::onConfig(const ConfigSection& configSection)
       uint32_t interval = pair.second.get_value<uint32_t>();
       m_probe->setProbingInterval(interval);
     }
-    else if (pair.first == "enable-learning-period") {
-      bool isLearningPeriodEnabled = pair.second.get_value<bool>();
-
-      if (isLearningPeriodEnabled) {
-        NFD_LOG_INFO("Enabling learning period...");
-        m_stats.enableLearningPeriod();
-      }
-    }
   }
 }
 
