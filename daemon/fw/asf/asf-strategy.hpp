@@ -37,68 +37,6 @@
 namespace nfd {
 namespace fw {
 
-/** \brief ASF Probing Module
- */
-class AsfProbing
-{
-public:
-  AsfProbing(MeasurementsAccessor& measurements);
-
-  void
-  scheduleProbe(shared_ptr<fib::Entry> fibEntry,
-                const time::milliseconds& interval);
-
-  shared_ptr<Face>
-  getFaceToProbe(const Face& inFace,
-                 const Interest& interest,
-                 shared_ptr<fib::Entry> fibEntry,
-                 const Face& faceUsed);
-
-  void
-  setProbingInterval(uint32_t interval)
-  {
-    m_probingInterval = time::seconds(interval);
-  }
-
-  const time::seconds&
-  getProbingInterval() const
-  {
-    return m_probingInterval;
-  }
-
-  bool
-  isProbingNeeded(shared_ptr<fib::Entry> fibEntry);
-
-  void
-  afterForwardingProbe(shared_ptr<fib::Entry> fibEntry);
-
-private:
-  // Used to associate FaceInfo with the face in a NextHop
-  typedef std::pair<shared_ptr<FaceInfo>, shared_ptr<Face>> FaceInfoFacePair;
-  typedef std::function<bool(FaceInfoFacePair, FaceInfoFacePair)> FaceInfoPredicate;
-  typedef std::set<FaceInfoFacePair, FaceInfoPredicate> FaceInfoFacePairSet;
-
-  shared_ptr<Face>
-  getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces);
-
-  typedef std::function<double(uint64_t /*rank*/, uint64_t /*rankSum*/, uint64_t /*nFaces*/)> ProbabilityFunction;
-
-  const ProbabilityFunction m_probabilityFunction;
-
-PUBLIC_WITH_TESTS_ELSE_PROTECTED:
-  double
-  getRandomNumber(double start, double end);
-
-protected:
-  bool m_isProbingNeeded;
-
-private:
-  time::seconds m_probingInterval;
-  MeasurementsAccessor& m_measurements;
-
-  static const time::seconds DEFAULT_PROBING_INTERVAL;
-};
-
 /** \brief Adaptive SRTT-based Forwarding Strategy
  */
 class AsfStrategy : public Strategy
@@ -138,7 +76,65 @@ private:
   RetxSuppressionFixed m_retxSuppression;
   RttRecorder m_rttRecorder;
 
-  AsfProbing m_probing;
+private:
+  /** \brief ASF Probing Module
+   */
+  class ProbingModule
+  {
+  public:
+    ProbingModule(MeasurementsAccessor& measurements);
+
+    void
+    scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseconds& interval);
+
+    shared_ptr<Face>
+    getFaceToProbe(const Face& inFace,
+                   const Interest& interest,
+                   shared_ptr<fib::Entry> fibEntry,
+                   const Face& faceUsed);
+
+    void
+    setProbingInterval(uint32_t interval)
+    {
+      m_probingInterval = time::seconds(interval);
+    }
+
+    const time::seconds&
+    getProbingInterval() const
+    {
+      return m_probingInterval;
+    }
+
+    bool
+    isProbingNeeded(shared_ptr<fib::Entry> fibEntry);
+
+    void
+    afterForwardingProbe(shared_ptr<fib::Entry> fibEntry);
+
+  private:
+    // Used to associate FaceInfo with the face in a NextHop
+    typedef std::pair<shared_ptr<FaceInfo>, shared_ptr<Face>> FaceInfoFacePair;
+    typedef std::function<bool(FaceInfoFacePair, FaceInfoFacePair)> FaceInfoPredicate;
+    typedef std::set<FaceInfoFacePair, FaceInfoPredicate> FaceInfoFacePairSet;
+
+    shared_ptr<Face>
+    getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces);
+
+    double
+    getProbingProbability(uint64_t rank, uint64_t rankSum, uint64_t nFaces);
+
+  PUBLIC_WITH_TESTS_ELSE_PROTECTED:
+    double
+    getRandomNumber(double start, double end);
+
+  private:
+    time::seconds m_probingInterval;
+    MeasurementsAccessor& m_measurements;
+
+    static const time::seconds DEFAULT_PROBING_INTERVAL;
+  };
+
+  ProbingModule m_probing;
 
 public:
   static const Name STRATEGY_NAME;

@@ -34,46 +34,19 @@
 namespace nfd {
 namespace fw {
 
-double
-AsfProbing::getRandomNumber(double start, double end)
-{
-  boost::random::uniform_real_distribution<double> distribution(start, end);
+const time::seconds AsfStrategy::ProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(60);
 
-  return distribution(getGlobalRng());
-}
-
-//==============================================================================
-// Probability Function
-//------------------------------------------------------------------------------
-// p = n + 1 - j ; n: # faces
-//     ---------
-//     sum(ranks)
-double
-getProbabilityFunction1(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
-{
-  return ((double)(nFaces + 1 - rank))/rankSum;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-const time::seconds AsfProbing::DEFAULT_PROBING_INTERVAL = time::seconds(60);
-
-AsfProbing::AsfProbing(MeasurementsAccessor& measurements)
-  : m_probabilityFunction(&getProbabilityFunction1)
-  , m_isProbingNeeded(true)
-  , m_probingInterval(DEFAULT_PROBING_INTERVAL)
+AsfStrategy::ProbingModule::ProbingModule(MeasurementsAccessor& measurements)
+  : m_probingInterval(DEFAULT_PROBING_INTERVAL)
   , m_measurements(measurements)
 {
-  BOOST_ASSERT(m_probabilityFunction != nullptr);
 }
 
 void
-AsfProbing::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseconds& interval)
+AsfStrategy::ProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
+                                          const time::milliseconds& interval)
 {
   ndn::Name prefix = fibEntry->getPrefix();
-
-  //NFD_LOG_DEBUG("Scheduling probe for " << prefix);
 
   // Set the probing flag for the namespace to true after PROBING_INTERVAL
   // period of time
@@ -81,24 +54,21 @@ AsfProbing::scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseco
     shared_ptr<NamespaceInfo> info = MeasurementHelper::getNamespaceInfo(m_measurements, prefix);
 
     if (info == nullptr) {
-      //NFD_LOG_DEBUG("FibEntry for " << prefix << " has been removed");
+      // FibEntry with the passed prefix has been removed
       return;
     }
     else {
-      //NFD_LOG_TRACE("Probing is due for " << prefix);
       info->isProbingNeeded = true;
     }
   });
 }
 
 shared_ptr<Face>
-AsfProbing::getFaceToProbe(const Face& inFace,
-                                 const Interest& interest,
-                                 shared_ptr<fib::Entry> fibEntry,
-                                 const Face& faceUsed)
+AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
+                                           const Interest& interest,
+                                           shared_ptr<fib::Entry> fibEntry,
+                                           const Face& faceUsed)
 {
-  //NFD_LOG_TRACE("Looking for face to probe " << fibEntry->getPrefix());
-
   FaceInfoFacePairSet rankedFaces(
     [] (FaceInfoFacePair lhs, FaceInfoFacePair rhs) -> bool {
       // Sort by RTT
@@ -130,7 +100,6 @@ AsfProbing::getFaceToProbe(const Face& inFace,
 
     // If no RTT has been recorded, probe this face
     if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
-      //NFD_LOG_DEBUG("Found face to probe with no RTT measurement");
       return hop.getFace();
     }
 
@@ -139,7 +108,7 @@ AsfProbing::getFaceToProbe(const Face& inFace,
   }
 
   if (rankedFaces.empty()) {
-    //NFD_LOG_DEBUG("Unable to find a face to probe");
+    // No Face to probe
     return nullptr;
   }
 
@@ -147,26 +116,16 @@ AsfProbing::getFaceToProbe(const Face& inFace,
 }
 
 bool
-AsfProbing::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
+AsfStrategy::ProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 {
-  // Return the probing flag status for a namespace
+  // Return the probing status flag for a namespace
   NamespaceInfo& info = MeasurementHelper::getOrCreateNamespaceInfo(m_measurements, *fibEntry);
 
   // If a first probe has not been scheduled for a namespace
   if (!info.hasFirstProbeBeenScheduled) {
-    // Schedule first probe at random interval
+    // Schedule first probe between 0 and 5 seconds
     uint64_t interval = getRandomNumber(0, 5000);
-
-    //NFD_LOG_DEBUG("Scheduling first probe for " << fibEntry->getPrefix() <<
-    //              " in " << interval << " ms");
-
-    // If the probe is scheduled for now, probe immediately
-    if (interval == 0) {
-      info.isProbingNeeded = true;
-    }
-    else {
-      scheduleProbe(fibEntry, time::milliseconds(interval));
-    }
+    scheduleProbe(fibEntry, time::milliseconds(interval));
 
     info.hasFirstProbeBeenScheduled = true;
   }
@@ -175,7 +134,7 @@ AsfProbing::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 }
 
 void
-AsfProbing::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry)
+AsfStrategy::ProbingModule::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry)
 {
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
@@ -186,20 +145,16 @@ AsfProbing::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry)
 }
 
 shared_ptr<Face>
-AsfProbing::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
+AsfStrategy::ProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
 {
   double randomNumber = getRandomNumber(0, 1);
-  //NFD_LOG_TRACE("randomNumber: " << randomNumber);
-
-  uint64_t rankSum = ((rankedFaces.size() + 1)*(rankedFaces.size()))/2;
-  //NFD_LOG_TRACE("rankSum: " << rankSum);
+  uint64_t rankSum = ((rankedFaces.size() + 1) * (rankedFaces.size())) / 2;
 
   uint64_t rank = 1;
-
   double offset = 0;
 
   for (const FaceInfoFacePair pair : rankedFaces) {
-    double probability = m_probabilityFunction(rank++, rankSum, rankedFaces.size());
+    double probability = getProbingProbability(rank++, rankSum, rankedFaces.size());
     //NFD_LOG_TRACE("probability: " << probability << " for FaceId: " << pair.second->getId());
 
     // Is the random number within the bounds of this face's probability + the previous faces'
@@ -212,16 +167,30 @@ AsfProbing::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
     //      (0.68 < 0.5 + 0.33 + 0.17) == true
     //
     if (randomNumber < offset + probability) {
-      //NFD_LOG_DEBUG("Found face to probe");
+      // Found face to probe
       return pair.second;
     }
 
     offset += probability;
-    //NFD_LOG_TRACE("offset: " << offset);
   }
 
-  //NFD_LOG_FATAL("Unable to find face to probe using probability!");
   throw std::runtime_error("Unable to find face to probe using probability!");
+}
+
+double
+AsfStrategy::ProbingModule::getProbingProbability(uint64_t rank, uint64_t rankSum, uint64_t nFaces)
+{
+  // p = n + 1 - j ; n: # faces
+  //     ---------
+  //     sum(ranks)
+  return ((double)(nFaces + 1 - rank)) / rankSum;
+}
+
+double
+AsfStrategy::ProbingModule::getRandomNumber(double start, double end)
+{
+  boost::random::uniform_real_distribution<double> distribution(start, end);
+  return distribution(getGlobalRng());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -251,8 +220,6 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
                                   shared_ptr<fib::Entry> fibEntry,
                                   shared_ptr<pit::Entry> pitEntry)
 {
-  NFD_LOG_TRACE("Received Interest " << interest.getName() << " nonce=" << interest.getNonce());
-
   // Should the Interest be suppressed?
   RetxSuppression::Result suppressResult = m_retxSuppression.decide(inFace, interest, *pitEntry);
 
@@ -261,20 +228,20 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
   case RetxSuppression::FORWARD:
     break;
   case RetxSuppression::SUPPRESS:
-    NFD_LOG_DEBUG(interest << " interestFrom " << inFace.getId() << " retx-suppress");
+    NFD_LOG_DEBUG(interest << " from=" << inFace.getId() << " suppressed");
     return;
   }
 
   const fib::NextHopList& nexthops = fibEntry->getNextHops();
 
   if (nexthops.size() == 0) {
-    NFD_LOG_TRACE("Rejecting Interest: No next hops for " << fibEntry->getPrefix());
+    NFD_LOG_TRACE("Reject pending Interest: No next hops for " << fibEntry->getPrefix());
     this->rejectPendingInterest(pitEntry);
     return;
   }
   else if (nexthops.size() == 1 && nexthops.front().getFace()->getId() == inFace.getId()) {
     // If the only nexthop that exists is the one the Interest was received on, reject
-    NFD_LOG_TRACE("Rejecting Interest: inFace is the only nexthop for " << fibEntry->getPrefix());
+    NFD_LOG_TRACE("Reject pending Interest: inFace is the only nexthop for " << fibEntry->getPrefix());
     this->rejectPendingInterest(pitEntry);
     return;
   }
@@ -282,7 +249,7 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
   const shared_ptr<Face> faceToUse = getBestFaceForForwarding(*fibEntry, inFace);
 
   if (faceToUse == nullptr) {
-    NFD_LOG_TRACE("Rejecting Interest: No best face");
+    NFD_LOG_TRACE("Reject pending Interest: No face to use for forwarding");
     this->rejectPendingInterest(pitEntry);
     return;
   }
@@ -294,12 +261,10 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
     shared_ptr<Face> faceToProbe = m_probing.getFaceToProbe(inFace, interest, fibEntry, *faceToUse);
 
     if (faceToProbe != nullptr) {
-      NFD_LOG_DEBUG("Sending probe for " << fibEntry->getPrefix()
+      NFD_LOG_TRACE("Sending probe for " << fibEntry->getPrefix()
                                          << " to FaceId: " << faceToProbe->getId());
 
-      bool wantNewNonce = true;
-      forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, wantNewNonce);
-
+      forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, true);
       m_probing.afterForwardingProbe(fibEntry);
     }
   }
@@ -310,13 +275,11 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
                                    const Face& inFace,
                                    const Data& data)
 {
-  NFD_LOG_TRACE("AsfStrategy::beforeSatisfyInterest");
-
   // Get measurements::Entry associated with the namespace
   shared_ptr<measurements::Entry> me = this->getMeasurements().findLongestPrefixMatch(*pitEntry);
 
   if (me == nullptr) {
-    NFD_LOG_WARN("Could not find measurements entry for " << pitEntry->getName());
+    NFD_LOG_TRACE("Could not find measurements entry for " << pitEntry->getName());
     return;
   }
 
@@ -327,17 +290,17 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   BOOST_ASSERT(info != nullptr);
 
   // Get info associated with the face
-  FaceInfo& face = info->faceInfoMap.at(inFace.getId());
+  FaceInfo& faceInfo = info->faceInfoMap.at(inFace.getId());
 
-  m_rttRecorder.record(face, pitEntry, me->getName(), inFace);
+  m_rttRecorder.record(faceInfo, pitEntry, me->getName(), inFace);
 
   // Extend lifetime for measurements associated with face
-  info->extendFaceInfoLifetime(face, inFace);
+  info->extendFaceInfoLifetime(faceInfo, inFace);
 
-  if (face.isTimeoutScheduled() && face.doesNameMatchLastInterest(data.getName())) {
+  if (faceInfo.isTimeoutScheduled() && faceInfo.doesNameMatchLastInterest(data.getName())) {
     // Cancel timeout
     NFD_LOG_DEBUG("Canceling timeout event for " << pitEntry->getName());
-    face.cancelTimeoutEvent();
+    faceInfo.cancelTimeoutEvent();
   }
 }
 
@@ -351,18 +314,17 @@ AsfStrategy::forwardInterest(const Interest& interest,
                              shared_ptr<Face> outFace,
                              bool wantNewNonce)
 {
-  NFD_LOG_DEBUG("Forwarding Interest using FaceId: " << outFace->getId());
   this->sendInterest(pitEntry, outFace, wantNewNonce);
 
-  FaceInfo& info = MeasurementHelper::getOrCreateFaceInfo(getMeasurements(), fibEntry, *outFace);
+  FaceInfo& faceInfo = MeasurementHelper::getOrCreateFaceInfo(getMeasurements(), fibEntry, *outFace);
 
   // Refresh measurements since Face is being used for forwarding
   NamespaceInfo& namespaceInfo = MeasurementHelper::getOrCreateNamespaceInfo(getMeasurements(), fibEntry);
-  namespaceInfo.extendFaceInfoLifetime(info, *outFace);
+  namespaceInfo.extendFaceInfoLifetime(faceInfo, *outFace);
 
-  if (!info.isTimeoutScheduled()) {
+  if (!faceInfo.isTimeoutScheduled()) {
     // Estimate and schedule timeout
-    RttEstimator::Duration timeout = info.rttEstimator.computeRto();
+    RttEstimator::Duration timeout = faceInfo.rttEstimator.computeRto();
 
     NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << outFace->getId() <<
                   " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
@@ -370,14 +332,9 @@ AsfStrategy::forwardInterest(const Interest& interest,
     scheduler::EventId id = scheduler::schedule(timeout,
         bind(&AsfStrategy::onTimeout, this, interest.getName(), outFace->getId()));
 
-    info.setTimeoutEvent(id, interest.getName());
+    faceInfo.setTimeoutEvent(id, interest.getName());
   }
 }
-
-// These values allow faces with no measurements to be ranked better than timeouts
-// srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
-static const Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
-static const Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
 
 struct FaceStats
 {
@@ -391,6 +348,11 @@ public:
 double
 getValueForSorting(const FaceStats& stats)
 {
+  // These values allow faces with no measurements to be ranked better than timeouts
+  // srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
+  static const Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
+  static const Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
+
   if (stats.rtt == RttStat::RTT_TIMEOUT) {
     return SORTING_RTT_TIMEOUT;
   }
