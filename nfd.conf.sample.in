@@ -337,21 +337,10 @@ forwarder
 {
   asf-strategy
   {
-    ; global seed for the strategy's random number generator
-    global-seed 1024 ; uint64_t
-
-    ; UID to identify this node; used to alter the global seed for each node
-    node-uid /node/name ; std::string
-
     ; interval (in seconds) between each probe for a namespace
     probing-interval 60
 
     ; time (in seconds) to keep FaceInfo measurements if they are not refreshed
     face-measurements-lifetime 300
-
-    ; Whether or not to perform a learning period for each FIB entry where the primary
-    ; Face will not change based on SRTT learned from probing. Once the learning period
-    ; is over, SRTT is used to decide the primary Face.
-    enable-learning-period 0
   }
 }
