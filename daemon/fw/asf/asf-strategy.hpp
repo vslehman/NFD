@@ -68,7 +68,7 @@ private:
   getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& inFace);
 
   void
-  onTimeout(const ndn::Name& interestName, FaceId faceId);
+  onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId);
 
 private:
   RetxSuppressionExponential m_retxSuppression;

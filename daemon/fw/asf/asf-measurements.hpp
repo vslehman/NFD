@@ -112,8 +112,7 @@ private:
   bool m_isTimeoutScheduled;
 };
 
-typedef uint64_t FaceId;
-typedef std::unordered_map<FaceId, FaceInfo> FaceInfoMap;
+typedef std::unordered_map<nfd::face::FaceId, FaceInfo> FaceInfoMap;
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +141,7 @@ public:
   getFaceInfo(const fib::Entry& fibEntry, const Face& face);
 
   void
-  expireFaceInfo(FaceId faceId);
+  expireFaceInfo(nfd::face::FaceId faceId);
 
   void
   extendFaceInfoLifetime(FaceInfo& info, const Face& face);

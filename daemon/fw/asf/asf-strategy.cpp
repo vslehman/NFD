@@ -420,7 +420,7 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
 }
 
 void
-AsfStrategy::onTimeout(const ndn::Name& interestName, FaceId faceId)
+AsfStrategy::onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId)
 {
   NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
 

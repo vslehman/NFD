@@ -145,7 +145,7 @@ NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 }
 
 void
-NamespaceInfo::expireFaceInfo(FaceId faceId)
+NamespaceInfo::expireFaceInfo(nfd::face::FaceId faceId)
 {
   NFD_LOG_DEBUG("Measurements for FaceId: " << faceId << " have expired");
   faceInfoMap.erase(faceId);
