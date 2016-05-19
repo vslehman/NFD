@@ -27,7 +27,6 @@
 #define NFD_DAEMON_FW_ASF_STRATEGY_HPP
 
 #include "asf-measurements.hpp"
-#include "rtt-recorder.hpp"
 #include "fw/retx-suppression-exponential.hpp"
 #include "fw/strategy.hpp"
 
@@ -73,7 +72,6 @@ private:
 
 private:
   RetxSuppressionExponential m_retxSuppression;
-  RttRecorder m_rttRecorder;
   AsfMeasurements m_measurements;
 
 private:

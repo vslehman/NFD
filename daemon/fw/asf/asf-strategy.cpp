@@ -289,7 +289,7 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   // Get info associated with the face
   FaceInfo& faceInfo = namespaceInfo->faceInfoMap.at(inFace.getId());
 
-  m_rttRecorder.record(faceInfo, pitEntry, inFace);
+  faceInfo.recordRtt(pitEntry, inFace);
 
   // Extend lifetime for measurements associated with face
   namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
@@ -337,8 +337,8 @@ struct FaceStats
 {
 public:
   shared_ptr<Face> face;
-  Rtt rtt;
-  Rtt srtt;
+  RttStat::Rtt rtt;
+  RttStat::Rtt srtt;
   uint64_t cost;
 };
 
@@ -347,8 +347,8 @@ getValueForSorting(const FaceStats& stats)
 {
   // These values allow faces with no measurements to be ranked better than timeouts
   // srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
-  static const Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
-  static const Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
+  static const RttStat::Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
+  static const RttStat::Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
 
   if (stats.rtt == RttStat::RTT_TIMEOUT) {
     return SORTING_RTT_TIMEOUT;

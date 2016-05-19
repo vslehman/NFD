@@ -26,13 +26,44 @@
 #ifndef NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 #define NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 
-#include "rtt-recorder.hpp"
+#include "tcp-rtt-estimator.hpp"
 
 #include "fw/strategy-info.hpp"
 #include "table/measurements-accessor.hpp"
 
 namespace nfd {
 namespace fw {
+
+class RttStat
+{
+public:
+  RttStat()
+    : srtt(RTT_NO_MEASUREMENT)
+    , rtt(RTT_NO_MEASUREMENT)
+  {
+  }
+
+  typedef double Rtt;
+
+  static double
+  computeSrtt(Rtt previousSrtt, Rtt currentRtt);
+
+public:
+  typedef time::microseconds Duration;
+
+  Rtt srtt;
+  Rtt rtt;
+  RttEstimator rttEstimator;
+
+  static const Rtt RTT_TIMEOUT;
+  static const Rtt RTT_NO_MEASUREMENT;
+
+private:
+  static const double ALPHA;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /** \brief Strategy information for each face in a namespace
 */
@@ -64,6 +95,9 @@ public:
   bool
   doesNameMatchLastInterest(const ndn::Name& name);
 
+  void
+  recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace);
+
 public:
   // Timeout associated with measurement
   scheduler::EventId measurementExpirationId;
@@ -80,6 +114,9 @@ private:
 
 typedef uint64_t FaceId;
 typedef std::unordered_map<FaceId, FaceInfo> FaceInfoMap;
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /** \brief stores stategy information about each face in this namespace
  */

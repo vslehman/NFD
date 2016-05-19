@@ -30,6 +30,25 @@ namespace fw {
 
 NFD_LOG_INIT("StrategyMeasurements");
 
+const RttStat::Rtt RttStat::RTT_TIMEOUT = -1;
+const RttStat::Rtt RttStat::RTT_NO_MEASUREMENT = 0;
+const double RttStat::ALPHA = 0.125;
+
+double
+RttStat::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
+{
+  if (previousSrtt == RTT_NO_MEASUREMENT) {
+    return currentRtt;
+  }
+
+  Rtt srtt = ALPHA * currentRtt + (1 - ALPHA) * previousSrtt;
+
+  return srtt;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(300);
 
 FaceInfo::FaceInfo()
@@ -67,6 +86,26 @@ bool
 FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
 {
   return m_lastInterestName.isPrefixOf(name);
+}
+
+void
+FaceInfo::recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace)
+{
+  // Calculate RTT
+  pit::OutRecordCollection::const_iterator outRecord = pitEntry->getOutRecord(inFace);
+  time::steady_clock::Duration steadyRtt = time::steady_clock::now() - outRecord->getLastRenewed();
+  RttStat::Duration durationRtt = time::duration_cast<RttStat::Duration>(steadyRtt);
+
+  this->rtt = static_cast<RttStat::Rtt>(durationRtt.count());
+
+  this->rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
+
+  // Assign ewma of RTT to face
+  this->srtt = computeSrtt(this->srtt, this->rtt);
+
+  NFD_LOG_TRACE("Recording RTT for FaceId: " << inFace.getId()
+                                              << " RTT: "    << this->rtt
+                                              << " SRTT: "   << this->srtt);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
