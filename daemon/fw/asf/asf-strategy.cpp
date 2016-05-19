@@ -294,11 +294,7 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   // Extend lifetime for measurements associated with face
   namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
 
-  if (faceInfo.isTimeoutScheduled() && faceInfo.doesNameMatchLastInterest(data.getName())) {
-    // Cancel timeout
-    NFD_LOG_DEBUG("Canceling timeout event for " << pitEntry->getName());
-    faceInfo.cancelTimeoutEvent();
-  }
+  faceInfo.cancelTimeoutEvent(data.getName());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

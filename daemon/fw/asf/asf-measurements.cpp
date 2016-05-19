@@ -28,7 +28,7 @@
 namespace nfd {
 namespace fw {
 
-NFD_LOG_INIT("StrategyMeasurements");
+NFD_LOG_INIT("AsfMeasurements");
 
 const RttStats::Rtt RttStats::RTT_TIMEOUT = -1;
 const RttStats::Rtt RttStats::RTT_NO_MEASUREMENT = 0;
@@ -39,9 +39,8 @@ RttStats::addRttMeasurement(RttEstimator::Duration& durationRtt)
 {
   m_rtt = static_cast<RttStats::Rtt>(durationRtt.count());
 
-  m_rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
+  m_rttEstimator.addMeasurement(durationRtt);
 
-  // Assign ewma of RTT to face
   m_srtt = computeSrtt(m_srtt, m_rtt);
 }
 
@@ -52,9 +51,7 @@ RttStats::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
     return currentRtt;
   }
 
-  Rtt srtt = ALPHA * currentRtt + (1 - ALPHA) * previousSrtt;
-
-  return srtt;
+  return ALPHA * currentRtt + (1 - ALPHA) * previousSrtt;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -93,6 +90,18 @@ FaceInfo::cancelTimeoutEvent()
   m_isTimeoutScheduled = false;
 }
 
+void
+FaceInfo::cancelTimeoutEvent(const ndn::Name& prefix)
+{
+  if (isTimeoutScheduled() && doesNameMatchLastInterest(prefix)) {
+    cancelTimeoutEvent();
+  }
+  else {
+    throw std::runtime_error("Timeout for " + prefix.toUri() +
+      " does not match FaceInfo.m_lastInterest: " + m_lastInterestName.toUri());
+  }
+}
+
 bool
 FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
 {
@@ -118,16 +127,7 @@ void
 FaceInfo::recordTimeout(const ndn::Name& interestName)
 {
   m_rttStats.recordTimeout();
-
-  // There should never be a timeout for an Interest that does not match
-  // FaceInfo.m_lastInterestName
-  if (isTimeoutScheduled() && doesNameMatchLastInterest(interestName)) {
-    cancelTimeoutEvent();
-  }
-  else {
-    throw std::runtime_error("Timeout for " + interestName.toUri() +
-      " does not match FaceInfo.m_lastInterest: " + getLastInterestName().toUri());
-  }
+  cancelTimeoutEvent(interestName);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -169,16 +169,12 @@ NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 void
 NamespaceInfo::expireFaceInfo(nfd::face::FaceId faceId)
 {
-  NFD_LOG_DEBUG("Measurements for FaceId: " << faceId << " have expired");
   m_fit.erase(faceId);
 }
 
 void
 NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
 {
-  NFD_LOG_DEBUG("Extending FaceInfo lifetime for Face ID: " << face.getId() <<
-                " with last Interest name: " << info.getLastInterestName());
-
   // Cancel previous expiration
   scheduler::cancel(info.measurementExpirationId);
 

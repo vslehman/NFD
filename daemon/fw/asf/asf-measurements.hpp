@@ -27,7 +27,6 @@
 #define NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 
 #include "fw/rtt-estimator.hpp"
-
 #include "fw/strategy-info.hpp"
 #include "table/measurements-accessor.hpp"
 
@@ -103,23 +102,14 @@ public:
   void
   setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName);
 
+  void
+  cancelTimeoutEvent(const ndn::Name& prefix);
+
   bool
   isTimeoutScheduled() const
   {
     return m_isTimeoutScheduled;
   }
-
-  void
-  cancelTimeoutEvent();
-
-  const ndn::Name&
-  getLastInterestName() const
-  {
-    return m_lastInterestName;
-  }
-
-  bool
-  doesNameMatchLastInterest(const ndn::Name& name);
 
   void
   recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace);
@@ -146,6 +136,13 @@ public:
   }
 
   typedef std::unordered_map<nfd::face::FaceId, FaceInfo> Table;
+
+private:
+  void
+  cancelTimeoutEvent();
+
+  bool
+  doesNameMatchLastInterest(const ndn::Name& name);
 
 public:
   // Timeout associated with measurement
@@ -226,6 +223,9 @@ public:
 private:
   FaceInfo::Table m_fit;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 /** \brief Helper class to retrieve and create strategy measurements
  */
