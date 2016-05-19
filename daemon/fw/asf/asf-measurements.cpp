@@ -30,14 +30,14 @@ namespace fw {
 
 NFD_LOG_INIT("StrategyMeasurements");
 
-const RttStat::Rtt RttStat::RTT_TIMEOUT = -1;
-const RttStat::Rtt RttStat::RTT_NO_MEASUREMENT = 0;
-const double RttStat::ALPHA = 0.125;
+const RttStats::Rtt RttStats::RTT_TIMEOUT = -1;
+const RttStats::Rtt RttStats::RTT_NO_MEASUREMENT = 0;
+const double RttStats::ALPHA = 0.125;
 
 void
-RttStat::addRttMeasurement(RttEstimator::Duration& durationRtt)
+RttStats::addRttMeasurement(RttEstimator::Duration& durationRtt)
 {
-  m_rtt = static_cast<RttStat::Rtt>(durationRtt.count());
+  m_rtt = static_cast<RttStats::Rtt>(durationRtt.count());
 
   m_rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
 
@@ -46,7 +46,7 @@ RttStat::addRttMeasurement(RttEstimator::Duration& durationRtt)
 }
 
 double
-RttStat::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
+RttStats::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
 {
   if (previousSrtt == RTT_NO_MEASUREMENT) {
     return currentRtt;
@@ -107,17 +107,17 @@ FaceInfo::recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace)
   time::steady_clock::Duration steadyRtt = time::steady_clock::now() - outRecord->getLastRenewed();
   RttEstimator::Duration durationRtt = time::duration_cast<RttEstimator::Duration>(steadyRtt);
 
-  m_rttStat.addRttMeasurement(durationRtt);
+  m_rttStats.addRttMeasurement(durationRtt);
 
   NFD_LOG_TRACE("Recording RTT for FaceId: " << inFace.getId()
-                                             << " RTT: "    << m_rttStat.getRtt()
-                                             << " SRTT: "   << m_rttStat.getSrtt());
+                                             << " RTT: "    << m_rttStats.getRtt()
+                                             << " SRTT: "   << m_rttStats.getSrtt());
 }
 
 void
 FaceInfo::recordTimeout(const ndn::Name& interestName)
 {
-  m_rttStat.recordTimeout();
+  m_rttStats.recordTimeout();
 
   // There should never be a timeout for an Interest that does not match
   // FaceInfo.m_lastInterestName

@@ -34,13 +34,12 @@
 namespace nfd {
 namespace fw {
 
-// TODO: Rename to RttStats
-class RttStat
+class RttStats
 {
 public:
   typedef double Rtt;
 
-  RttStat()
+  RttStats()
     : m_srtt(RTT_NO_MEASUREMENT)
     , m_rtt(RTT_NO_MEASUREMENT)
   {
@@ -128,16 +127,22 @@ public:
   void
   recordTimeout(const ndn::Name& interestName);
 
-  const RttStat&
-  getRttStats() const
-  {
-    return m_rttStat;
-  }
-
   RttEstimator::Duration
   computeRto() const
   {
-    return m_rttStat.computeRto();
+    return m_rttStats.computeRto();
+  }
+
+  RttStats::Rtt
+  getRtt() const
+  {
+    return m_rttStats.getRtt();
+  }
+
+  RttStats::Rtt
+  getSrtt() const
+  {
+    return m_rttStats.getSrtt();
   }
 
   typedef std::unordered_map<nfd::face::FaceId, FaceInfo> Table;
@@ -149,7 +154,7 @@ public:
   static const time::seconds MEASUREMENT_LIFETIME;
 
 private:
-  RttStat m_rttStat;
+  RttStats m_rttStats;
   ndn::Name m_lastInterestName;
 
   // Timeout associated with Interest

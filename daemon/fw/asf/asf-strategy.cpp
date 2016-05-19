@@ -73,14 +73,14 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
     [] (FaceInfoFacePair lhs, FaceInfoFacePair rhs) -> bool {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
-      if (lhs.first->getRttStats().getRtt() != RttStat::RTT_TIMEOUT && rhs.first->getRttStats().getRtt() == RttStat::RTT_TIMEOUT) {
+      if (lhs.first->getRtt() != RttStats::RTT_TIMEOUT && rhs.first->getRtt() == RttStats::RTT_TIMEOUT) {
         return true;
       }
-      else if (lhs.first->getRttStats().getRtt() == RttStat::RTT_TIMEOUT && rhs.first->getRttStats().getRtt() != RttStat::RTT_TIMEOUT) {
+      else if (lhs.first->getRtt() == RttStats::RTT_TIMEOUT && rhs.first->getRtt() != RttStats::RTT_TIMEOUT) {
         return false;
       }
       else {
-        return lhs.first->getRttStats().getSrtt() < rhs.first->getRttStats().getSrtt();
+        return lhs.first->getSrtt() < rhs.first->getSrtt();
       }
   });
 
@@ -99,7 +99,7 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
     FaceInfo* info = m_measurements.getFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
-    if (info == nullptr || info->getRttStats().getSrtt() == RttStat::RTT_NO_MEASUREMENT) {
+    if (info == nullptr || info->getSrtt() == RttStats::RTT_NO_MEASUREMENT) {
       return hop.getFace();
     }
 
@@ -337,8 +337,8 @@ struct FaceStats
 {
 public:
   shared_ptr<Face> face;
-  RttStat::Rtt rtt;
-  RttStat::Rtt srtt;
+  RttStats::Rtt rtt;
+  RttStats::Rtt srtt;
   uint64_t cost;
 };
 
@@ -347,13 +347,13 @@ getValueForSorting(const FaceStats& stats)
 {
   // These values allow faces with no measurements to be ranked better than timeouts
   // srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
-  static const RttStat::Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
-  static const RttStat::Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
+  static const RttStats::Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
+  static const RttStats::Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
 
-  if (stats.rtt == RttStat::RTT_TIMEOUT) {
+  if (stats.rtt == RttStats::RTT_TIMEOUT) {
     return SORTING_RTT_TIMEOUT;
   }
-  else if (stats.rtt == RttStat::RTT_NO_MEASUREMENT) {
+  else if (stats.rtt == RttStats::RTT_NO_MEASUREMENT) {
     return SORTING_RTT_NO_MEASUREMENT;
   }
   else {
@@ -396,14 +396,14 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
 
     if (info == nullptr) {
       FaceStats stats = {hop.getFace(),
-                         RttStat::RTT_NO_MEASUREMENT,
-                         RttStat::RTT_NO_MEASUREMENT,
+                         RttStats::RTT_NO_MEASUREMENT,
+                         RttStats::RTT_NO_MEASUREMENT,
                          hop.getCost()};
 
       rankedFaces.insert(stats);
     }
     else {
-      FaceStats stats = {hop.getFace(), info->getRttStats().getRtt(), info->getRttStats().getSrtt(), hop.getCost()};
+      FaceStats stats = {hop.getFace(), info->getRtt(), info->getSrtt(), hop.getCost()};
       rankedFaces.insert(stats);
     }
   }
