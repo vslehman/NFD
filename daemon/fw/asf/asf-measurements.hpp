@@ -26,7 +26,7 @@
 #ifndef NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 #define NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 
-#include "tcp-rtt-estimator.hpp"
+#include "fw/rtt-estimator.hpp"
 
 #include "fw/strategy-info.hpp"
 #include "table/measurements-accessor.hpp"
