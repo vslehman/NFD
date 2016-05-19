@@ -57,8 +57,6 @@ RttStats::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const time::seconds FaceInfo::MEASUREMENT_LIFETIME = time::seconds(300);
-
 FaceInfo::FaceInfo()
   : m_isTimeoutScheduled(false)
 {
@@ -67,7 +65,7 @@ FaceInfo::FaceInfo()
 FaceInfo::~FaceInfo()
 {
   cancelTimeoutEvent();
-  scheduler::cancel(this->measurementExpirationId);
+  scheduler::cancel(m_measurementExpirationId);
 }
 
 void
@@ -176,13 +174,13 @@ void
 NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
 {
   // Cancel previous expiration
-  scheduler::cancel(info.measurementExpirationId);
+  scheduler::cancel(info.getMeasurementExpirationEventId());
 
   // Refresh measurement
-  scheduler::EventId id = scheduler::schedule(FaceInfo::MEASUREMENT_LIFETIME,
+  scheduler::EventId id = scheduler::schedule(AsfMeasurements::MEASUREMENTS_LIFETIME,
     bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
 
-  info.measurementExpirationId = id;
+  info.setMeasurementExpirationEventId(id);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

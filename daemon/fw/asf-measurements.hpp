@@ -103,6 +103,18 @@ public:
   setTimeoutEvent(const scheduler::EventId& id, const ndn::Name& interestName);
 
   void
+  setMeasurementExpirationEventId(const scheduler::EventId& id)
+  {
+    m_measurementExpirationId = id;
+  }
+
+  const scheduler::EventId&
+  getMeasurementExpirationEventId()
+  {
+    return m_measurementExpirationId;
+  }
+
+  void
   cancelTimeoutEvent(const ndn::Name& prefix);
 
   bool
@@ -144,17 +156,14 @@ private:
   bool
   doesNameMatchLastInterest(const ndn::Name& name);
 
-public:
-  // Timeout associated with measurement
-  scheduler::EventId measurementExpirationId;
-
-  static const time::seconds MEASUREMENT_LIFETIME;
-
 private:
   RttStats m_rttStats;
   ndn::Name m_lastInterestName;
 
-  // Timeout associated with Interest
+  // Timeout associated with measurement
+  scheduler::EventId m_measurementExpirationId;
+
+  // RTO associated with Interest
   scheduler::EventId m_timeoutEventId;
   bool m_isTimeoutScheduled;
 };
@@ -252,10 +261,11 @@ public:
   void
   extendLifetime(shared_ptr<measurements::Entry> me);
 
+public:
+  static const time::microseconds MEASUREMENTS_LIFETIME;
+
 private:
   MeasurementsAccessor& m_measurements;
-
-  static const time::microseconds MEASUREMENTS_LIFETIME;
 };
 
 } // namespace fw
