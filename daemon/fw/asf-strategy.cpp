@@ -337,7 +337,7 @@ getValueForSorting(const FaceStats& stats)
   // These values allow faces with no measurements to be ranked better than timeouts
   // srtt < RTT_NO_MEASUREMENT < RTT_TIMEOUT
   static const RttStats::Rtt SORTING_RTT_TIMEOUT = time::microseconds::max().count();
-  static const RttStats::Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT/2;
+  static const RttStats::Rtt SORTING_RTT_NO_MEASUREMENT = SORTING_RTT_TIMEOUT / 2;
 
   if (stats.rtt == RttStats::RTT_TIMEOUT) {
     return SORTING_RTT_TIMEOUT;
