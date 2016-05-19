@@ -26,9 +26,10 @@
 #ifndef NFD_DAEMON_FW_ASF_STRATEGY_HPP
 #define NFD_DAEMON_FW_ASF_STRATEGY_HPP
 
+#include "asf-measurements.hpp"
+#include "rtt-recorder.hpp"
 #include "fw/retx-suppression-exponential.hpp"
 #include "fw/strategy.hpp"
-#include "rtt-recorder.hpp"
 
 namespace nfd {
 namespace fw {
@@ -71,12 +72,17 @@ private:
   onTimeout(const ndn::Name& interestName, FaceId faceId);
 
 private:
+  RetxSuppressionExponential m_retxSuppression;
+  RttRecorder m_rttRecorder;
+  AsfMeasurements m_measurements;
+
+private:
   /** \brief ASF Probing Module
    */
   class ProbingModule
   {
   public:
-    ProbingModule(MeasurementsAccessor& measurements);
+    ProbingModule(AsfMeasurements& measurements);
 
     void
     scheduleProbe(shared_ptr<fib::Entry> fibEntry, const time::milliseconds& interval);
@@ -123,16 +129,12 @@ private:
 
   private:
     time::seconds m_probingInterval;
-    MeasurementsAccessor& m_measurements;
+    AsfMeasurements& m_measurements;
 
     static const time::seconds DEFAULT_PROBING_INTERVAL;
   };
 
   ProbingModule m_probing;
-
-private:
-  RetxSuppressionExponential m_retxSuppression;
-  RttRecorder m_rttRecorder;
 
 public:
   static const Name STRATEGY_NAME;

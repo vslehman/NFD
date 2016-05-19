@@ -27,7 +27,9 @@
 #define NFD_DAEMON_FW_ASF_MEASUREMENTS_HPP
 
 #include "rtt-recorder.hpp"
+
 #include "fw/strategy-info.hpp"
+#include "table/measurements-accessor.hpp"
 
 namespace nfd {
 namespace fw {
@@ -112,6 +114,34 @@ public:
   FaceInfoMap faceInfoMap;
   bool isProbingNeeded;
   bool hasFirstProbeBeenScheduled;
+};
+
+/** \brief Helper class to retrieve and create measurements
+ */
+class AsfMeasurements
+{
+public:
+  AsfMeasurements(MeasurementsAccessor& measurements)
+    : m_measurements(measurements)
+  {
+  }
+
+  FaceInfo*
+  getFaceInfo(const fib::Entry& fibEntry, const Face& face);
+
+  FaceInfo&
+  getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face);
+
+  shared_ptr<NamespaceInfo>
+  getNamespaceInfo(const ndn::Name& prefix);
+
+  NamespaceInfo&
+  getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
+
+private:
+  MeasurementsAccessor& m_measurements;
+
+  static const time::microseconds MEASUREMENTS_LIFETIME;
 };
 
 } // namespace fw

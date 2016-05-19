@@ -69,9 +69,8 @@ FaceInfo::doesNameMatchLastInterest(const ndn::Name& name)
   return m_lastInterestName.isPrefixOf(name);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// class NamespaceInfo
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 FaceInfo*
 NamespaceInfo::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
@@ -127,6 +126,59 @@ NamespaceInfo::extendFaceInfoLifetime(FaceInfo& info, const Face& face)
     bind(&NamespaceInfo::expireFaceInfo, this, face.getId()));
 
   info.measurementExpirationId = id;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+const time::microseconds AsfMeasurements::MEASUREMENTS_LIFETIME = time::seconds(300);
+
+FaceInfo*
+AsfMeasurements::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
+{
+  NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
+
+  return info.getFaceInfo(fibEntry, face);
+}
+
+FaceInfo&
+AsfMeasurements::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
+{
+  NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
+
+  return info.getOrCreateFaceInfo(fibEntry, face);
+}
+
+shared_ptr<NamespaceInfo>
+AsfMeasurements::getNamespaceInfo(const ndn::Name& prefix)
+{
+  shared_ptr<measurements::Entry> me = m_measurements.findLongestPrefixMatch(prefix);
+
+  if (me == nullptr) {
+    return nullptr;
+  }
+
+  // Set or update entry lifetime
+  m_measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+
+  shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
+  BOOST_ASSERT(info != nullptr);
+
+  return info;
+}
+
+NamespaceInfo&
+AsfMeasurements::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
+{
+  shared_ptr<measurements::Entry> me = m_measurements.get(fibEntry);
+
+  // Set or update entry lifetime
+  m_measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+
+  shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
+  BOOST_ASSERT(info != nullptr);
+
+  return *info;
 }
 
 } // namespace fw

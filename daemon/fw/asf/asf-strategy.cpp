@@ -34,70 +34,9 @@
 namespace nfd {
 namespace fw {
 
-class MeasurementHelper
-{
-public:
-  static FaceInfo*
-  getFaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry, const Face& face)
-  {
-    NamespaceInfo& info = getOrCreateNamespaceInfo(measurements, fibEntry);
-
-    return info.getFaceInfo(fibEntry, face);
-  }
-
-  static FaceInfo&
-  getOrCreateFaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry, const Face& face)
-  {
-    NamespaceInfo& info = getOrCreateNamespaceInfo(measurements, fibEntry);
-
-    return info.getOrCreateFaceInfo(fibEntry, face);
-  }
-
-  static shared_ptr<NamespaceInfo>
-  getNamespaceInfo(MeasurementsAccessor& measurements, const ndn::Name& prefix)
-  {
-    shared_ptr<measurements::Entry> me = measurements.findLongestPrefixMatch(prefix);
-
-    if (me == nullptr) {
-      //NFD_LOG_WARN("Could not find measurements entry for " << prefix);
-      return nullptr;
-    }
-
-    // Set or update entry lifetime
-    measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
-
-    shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
-    BOOST_ASSERT(info != nullptr);
-
-    return info;
-  }
-
-  static NamespaceInfo&
-  getOrCreateNamespaceInfo(MeasurementsAccessor& measurements, const fib::Entry& fibEntry)
-  {
-    shared_ptr<measurements::Entry> me = measurements.get(fibEntry);
-
-    // Set or update entry lifetime
-    measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
-
-    shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
-    BOOST_ASSERT(info != nullptr);
-
-    return *info;
-  }
-
-private:
-  static const time::microseconds MEASUREMENTS_LIFETIME;
-};
-
-const time::microseconds MeasurementHelper::MEASUREMENTS_LIFETIME = time::seconds(300);
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 const time::seconds AsfStrategy::ProbingModule::DEFAULT_PROBING_INTERVAL = time::seconds(60);
 
-AsfStrategy::ProbingModule::ProbingModule(MeasurementsAccessor& measurements)
+AsfStrategy::ProbingModule::ProbingModule(AsfMeasurements& measurements)
   : m_probingInterval(DEFAULT_PROBING_INTERVAL)
   , m_measurements(measurements)
 {
@@ -112,7 +51,7 @@ AsfStrategy::ProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
   // Set the probing flag for the namespace to true after PROBING_INTERVAL
   // period of time
   scheduler::schedule(interval, [this, prefix] () {
-    shared_ptr<NamespaceInfo> info = MeasurementHelper::getNamespaceInfo(m_measurements, prefix);
+    shared_ptr<NamespaceInfo> info = m_measurements.getNamespaceInfo(prefix);
 
     if (info == nullptr) {
       // FibEntry with the passed prefix has been removed
@@ -157,7 +96,7 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
       continue;
     }
 
-    FaceInfo* info = MeasurementHelper::getFaceInfo(m_measurements, *fibEntry, *hop.getFace());
+    FaceInfo* info = m_measurements.getFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
     if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
@@ -180,7 +119,7 @@ bool
 AsfStrategy::ProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
 {
   // Return the probing status flag for a namespace
-  NamespaceInfo& info = MeasurementHelper::getOrCreateNamespaceInfo(m_measurements, *fibEntry);
+  NamespaceInfo& info = m_measurements.getOrCreateNamespaceInfo(*fibEntry);
 
   // If a first probe has not been scheduled for a namespace
   if (!info.hasFirstProbeBeenScheduled) {
@@ -199,7 +138,7 @@ AsfStrategy::ProbingModule::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry
 {
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
-  NamespaceInfo& info = MeasurementHelper::getOrCreateNamespaceInfo(m_measurements, *fibEntry);
+  NamespaceInfo& info = m_measurements.getOrCreateNamespaceInfo(*fibEntry);
   info.isProbingNeeded = false;
 
   scheduleProbe(fibEntry, getProbingInterval());
@@ -267,10 +206,11 @@ NFD_REGISTER_STRATEGY(AsfStrategy);
 
 AsfStrategy::AsfStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
-  , m_probing(getMeasurements())
   , m_retxSuppression(RETX_SUPPRESSION_INITIAL,
                       RetxSuppressionExponential::DEFAULT_MULTIPLIER,
                       RETX_SUPPRESSION_MAX)
+  , m_measurements(getMeasurements())
+  , m_probing(m_measurements)
 {
 }
 
@@ -380,10 +320,10 @@ AsfStrategy::forwardInterest(const Interest& interest,
 {
   this->sendInterest(pitEntry, outFace, wantNewNonce);
 
-  FaceInfo& faceInfo = MeasurementHelper::getOrCreateFaceInfo(getMeasurements(), fibEntry, *outFace);
+  FaceInfo& faceInfo = m_measurements.getOrCreateFaceInfo(fibEntry, *outFace);
 
   // Refresh measurements since Face is being used for forwarding
-  NamespaceInfo& namespaceInfo = MeasurementHelper::getOrCreateNamespaceInfo(getMeasurements(), fibEntry);
+  NamespaceInfo& namespaceInfo = m_measurements.getOrCreateNamespaceInfo(fibEntry);
   namespaceInfo.extendFaceInfoLifetime(faceInfo, *outFace);
 
   if (!faceInfo.isTimeoutScheduled()) {
@@ -459,7 +399,7 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
       continue;
     }
 
-    FaceInfo* info = MeasurementHelper::getFaceInfo(getMeasurements(), fibEntry, *hop.getFace());
+    FaceInfo* info = m_measurements.getFaceInfo(fibEntry, *hop.getFace());
 
     if (info == nullptr) {
       FaceStats stats = {hop.getFace(),
@@ -491,7 +431,7 @@ AsfStrategy::onTimeout(const ndn::Name& interestName, FaceId faceId)
 {
   NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
 
-  shared_ptr<NamespaceInfo> info = MeasurementHelper::getNamespaceInfo(getMeasurements(), interestName);
+  shared_ptr<NamespaceInfo> info = m_measurements.getNamespaceInfo(interestName);
 
   if (info == nullptr) {
     NFD_LOG_DEBUG("FibEntry for " << interestName << " was removed");
