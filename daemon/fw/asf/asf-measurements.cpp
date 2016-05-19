@@ -114,9 +114,9 @@ FaceInfo::recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace)
 FaceInfo*
 NamespaceInfo::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
-  FaceInfoMap::iterator it = faceInfoMap.find(face.getId());
+  FaceInfo::Table::iterator it = m_fit.find(face.getId());
 
-  if (it != faceInfoMap.end()) {
+  if (it != m_fit.end()) {
     return &it->second;
   }
   else {
@@ -127,12 +127,12 @@ NamespaceInfo::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
 FaceInfo&
 NamespaceInfo::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
-  FaceInfoMap::iterator it = faceInfoMap.find(face.getId());
+  FaceInfo::Table::iterator it = m_fit.find(face.getId());
 
   FaceInfo* info;
 
-  if (it == faceInfoMap.end()) {
-    const auto& pair = faceInfoMap.insert(std::make_pair(face.getId(), FaceInfo()));
+  if (it == m_fit.end()) {
+    const auto& pair = m_fit.insert(std::make_pair(face.getId(), FaceInfo()));
     info = &pair.first->second;
 
     extendFaceInfoLifetime(*info, face);
@@ -148,7 +148,7 @@ void
 NamespaceInfo::expireFaceInfo(nfd::face::FaceId faceId)
 {
   NFD_LOG_DEBUG("Measurements for FaceId: " << faceId << " have expired");
-  faceInfoMap.erase(faceId);
+  m_fit.erase(faceId);
 }
 
 void

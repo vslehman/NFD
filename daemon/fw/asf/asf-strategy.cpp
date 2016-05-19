@@ -287,7 +287,7 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   }
 
   // Get info associated with the face
-  FaceInfo& faceInfo = namespaceInfo->faceInfoMap.at(inFace.getId());
+  FaceInfo& faceInfo = namespaceInfo->get(inFace.getId());
 
   faceInfo.recordRtt(pitEntry, inFace);
 
@@ -424,41 +424,30 @@ AsfStrategy::onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId)
 {
   NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
 
-  shared_ptr<NamespaceInfo> info = m_measurements.getNamespaceInfo(interestName);
+  shared_ptr<NamespaceInfo> namespaceInfo = m_measurements.getNamespaceInfo(interestName);
 
-  if (info == nullptr) {
+  if (namespaceInfo == nullptr) {
     NFD_LOG_DEBUG("FibEntry for " << interestName << " was removed");
     return;
   }
 
-  FaceInfoMap::iterator it = info->faceInfoMap.find(faceId);
+  FaceInfo::Table::iterator it = namespaceInfo->find(faceId);
 
-  FaceInfo* record;
+  if (it == namespaceInfo->end()) {
+    it = namespaceInfo->insert(faceId);
+  }
 
-  if (it == info->faceInfoMap.end()) {
-    const auto& pair = info->faceInfoMap.insert(std::make_pair(faceId, FaceInfo()));
-    record = &pair.first->second;
+  FaceInfo& record = it->second;
+  record.rtt = RttStat::RTT_TIMEOUT;
+
+  // There should never be a timeout for an Interest that does not match
+  // FaceInfo.m_lastInterestName
+  if (record.isTimeoutScheduled() && record.doesNameMatchLastInterest(interestName)) {
+    record.cancelTimeoutEvent();
   }
   else {
-    record = &it->second;
-  }
-
-  if (record != nullptr) {
-    record->rtt = RttStat::RTT_TIMEOUT;
-
-    // There should never be a timeout for an Interest that does not match
-    // FaceInfo.m_lastInterestName
-    if (record->isTimeoutScheduled() && record->doesNameMatchLastInterest(interestName)) {
-      record->cancelTimeoutEvent();
-    }
-    else {
-      throw std::runtime_error("Timeout for " + interestName.toUri() +
-        " does not match FaceInfo.m_lastInterest: " + record->getLastInterestName().toUri());
-    }
-  }
-  else {
-    throw std::runtime_error("Could not find or create FaceInfo for " + interestName.toUri() +
-                             " FaceId: " + std::to_string(faceId));
+    throw std::runtime_error("Timeout for " + interestName.toUri() +
+      " does not match FaceInfo.m_lastInterest: " + record.getLastInterestName().toUri());
   }
 }
 

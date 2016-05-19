@@ -98,6 +98,9 @@ public:
   void
   recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace);
 
+  typedef std::pair<nfd::face::FaceId, FaceInfo> Pair;
+  typedef std::unordered_map<nfd::face::FaceId, FaceInfo> Table;
+
 public:
   // Timeout associated with measurement
   scheduler::EventId measurementExpirationId;
@@ -111,8 +114,6 @@ private:
   scheduler::EventId m_timeoutEventId;
   bool m_isTimeoutScheduled;
 };
-
-typedef std::unordered_map<nfd::face::FaceId, FaceInfo> FaceInfoMap;
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -146,10 +147,37 @@ public:
   void
   extendFaceInfoLifetime(FaceInfo& info, const Face& face);
 
+  FaceInfo&
+  get(nfd::face::FaceId faceId)
+  {
+    return m_fit.at(faceId);
+  }
+
+  FaceInfo::Table::iterator
+  find(nfd::face::FaceId faceId)
+  {
+    return m_fit.find(faceId);
+  }
+
+  FaceInfo::Table::iterator
+  end()
+  {
+    return m_fit.end();
+  }
+
+  const FaceInfo::Table::iterator
+  insert(nfd::face::FaceId faceId)
+  {
+    const auto& pair = m_fit.insert(std::make_pair(faceId, FaceInfo()));
+    return pair.first;
+  }
+
 public:
-  FaceInfoMap faceInfoMap;
   bool isProbingNeeded;
   bool hasFirstProbeBeenScheduled;
+
+private:
+  FaceInfo::Table m_fit;
 };
 
 /** \brief Helper class to retrieve and create measurements
