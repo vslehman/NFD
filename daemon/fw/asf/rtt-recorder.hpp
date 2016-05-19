@@ -58,7 +58,6 @@ public:
   void
   record(RttStat& stat,
          const shared_ptr<pit::Entry> pitEntry,
-         const ndn::Name& prefix,
          const Face& inFace);
 
 public:

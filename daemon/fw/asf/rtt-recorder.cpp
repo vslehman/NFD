@@ -38,7 +38,6 @@ const double RttRecorder::ALPHA = 0.125;
 void
 RttRecorder::record(RttStat& stat,
                     const shared_ptr<pit::Entry> pitEntry,
-                    const ndn::Name& prefix,
                     const Face& inFace)
 {
   NFD_LOG_TRACE("Recording RTT");
@@ -55,7 +54,7 @@ RttRecorder::record(RttStat& stat,
   // Assign ewma of RTT to face
   stat.srtt = computeSrtt(stat.srtt, stat.rtt);
 
-  NFD_LOG_INFO("Recording RTT for " << prefix << " FaceId: " << inFace.getId()
+  NFD_LOG_TRACE("Recording RTT for FaceId: " << inFace.getId()
                                               << " RTT: "    << stat.rtt
                                               << " SRTT: "   << stat.srtt);
 }

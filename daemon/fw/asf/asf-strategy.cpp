@@ -279,27 +279,20 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
                                    const Face& inFace,
                                    const Data& data)
 {
-  // Get measurements::Entry associated with the namespace
-  shared_ptr<measurements::Entry> me = this->getMeasurements().findLongestPrefixMatch(*pitEntry);
-
-  if (me == nullptr) {
+  shared_ptr<NamespaceInfo> namespaceInfo = m_measurements.getNamespaceInfo(pitEntry->getName());
+  
+  if (namespaceInfo == nullptr) {
     NFD_LOG_TRACE("Could not find measurements entry for " << pitEntry->getName());
     return;
   }
 
-  // Set or update entry lifetime
-  this->getMeasurements().extendLifetime(*me, FaceInfo::MEASUREMENT_LIFETIME);
-
-  shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
-  BOOST_ASSERT(info != nullptr);
-
   // Get info associated with the face
-  FaceInfo& faceInfo = info->faceInfoMap.at(inFace.getId());
+  FaceInfo& faceInfo = namespaceInfo->faceInfoMap.at(inFace.getId());
 
-  m_rttRecorder.record(faceInfo, pitEntry, me->getName(), inFace);
+  m_rttRecorder.record(faceInfo, pitEntry, inFace);
 
   // Extend lifetime for measurements associated with face
-  info->extendFaceInfoLifetime(faceInfo, inFace);
+  namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
 
   if (faceInfo.isTimeoutScheduled() && faceInfo.doesNameMatchLastInterest(data.getName())) {
     // Cancel timeout

@@ -159,7 +159,7 @@ AsfMeasurements::getNamespaceInfo(const ndn::Name& prefix)
   }
 
   // Set or update entry lifetime
-  m_measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+  extendLifetime(me);
 
   shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
   BOOST_ASSERT(info != nullptr);
@@ -173,12 +173,20 @@ AsfMeasurements::getOrCreateNamespaceInfo(const fib::Entry& fibEntry)
   shared_ptr<measurements::Entry> me = m_measurements.get(fibEntry);
 
   // Set or update entry lifetime
-  m_measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+  extendLifetime(me);
 
   shared_ptr<NamespaceInfo> info = me->getOrCreateStrategyInfo<NamespaceInfo>();
   BOOST_ASSERT(info != nullptr);
 
   return *info;
+}
+
+void
+AsfMeasurements::extendLifetime(shared_ptr<measurements::Entry> me)
+{
+  if (me != nullptr) {
+    m_measurements.extendLifetime(*me, MEASUREMENTS_LIFETIME);
+  }
 }
 
 } // namespace fw

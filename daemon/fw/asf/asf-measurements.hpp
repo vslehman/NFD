@@ -138,6 +138,9 @@ public:
   NamespaceInfo&
   getOrCreateNamespaceInfo(const fib::Entry& fibEntry);
 
+  void
+  extendLifetime(shared_ptr<measurements::Entry> me);
+
 private:
   MeasurementsAccessor& m_measurements;
 
