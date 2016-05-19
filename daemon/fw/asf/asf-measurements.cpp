@@ -34,6 +34,17 @@ const RttStat::Rtt RttStat::RTT_TIMEOUT = -1;
 const RttStat::Rtt RttStat::RTT_NO_MEASUREMENT = 0;
 const double RttStat::ALPHA = 0.125;
 
+void
+RttStat::addRttMeasurement(RttEstimator::Duration& durationRtt)
+{
+  m_rtt = static_cast<RttStat::Rtt>(durationRtt.count());
+
+  m_rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
+
+  // Assign ewma of RTT to face
+  m_srtt = computeSrtt(m_srtt, m_rtt);
+}
+
 double
 RttStat::computeSrtt(Rtt previousSrtt, Rtt currentRtt)
 {
@@ -94,18 +105,29 @@ FaceInfo::recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace)
   // Calculate RTT
   pit::OutRecordCollection::const_iterator outRecord = pitEntry->getOutRecord(inFace);
   time::steady_clock::Duration steadyRtt = time::steady_clock::now() - outRecord->getLastRenewed();
-  RttStat::Duration durationRtt = time::duration_cast<RttStat::Duration>(steadyRtt);
+  RttEstimator::Duration durationRtt = time::duration_cast<RttEstimator::Duration>(steadyRtt);
 
-  this->rtt = static_cast<RttStat::Rtt>(durationRtt.count());
-
-  this->rttEstimator.addMeasurement(time::duration_cast<RttEstimator::Duration>(durationRtt));
-
-  // Assign ewma of RTT to face
-  this->srtt = computeSrtt(this->srtt, this->rtt);
+  m_rttStat.addRttMeasurement(durationRtt);
 
   NFD_LOG_TRACE("Recording RTT for FaceId: " << inFace.getId()
-                                              << " RTT: "    << this->rtt
-                                              << " SRTT: "   << this->srtt);
+                                             << " RTT: "    << m_rttStat.getRtt()
+                                             << " SRTT: "   << m_rttStat.getSrtt());
+}
+
+void
+FaceInfo::recordTimeout(const ndn::Name& interestName)
+{
+  m_rttStat.recordTimeout();
+
+  // There should never be a timeout for an Interest that does not match
+  // FaceInfo.m_lastInterestName
+  if (isTimeoutScheduled() && doesNameMatchLastInterest(interestName)) {
+    cancelTimeoutEvent();
+  }
+  else {
+    throw std::runtime_error("Timeout for " + interestName.toUri() +
+      " does not match FaceInfo.m_lastInterest: " + getLastInterestName().toUri());
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

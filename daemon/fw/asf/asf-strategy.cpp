@@ -73,14 +73,14 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
     [] (FaceInfoFacePair lhs, FaceInfoFacePair rhs) -> bool {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
-      if (lhs.first->rtt != RttStat::RTT_TIMEOUT && rhs.first->rtt == RttStat::RTT_TIMEOUT) {
+      if (lhs.first->getRttStats().getRtt() != RttStat::RTT_TIMEOUT && rhs.first->getRttStats().getRtt() == RttStat::RTT_TIMEOUT) {
         return true;
       }
-      else if (lhs.first->rtt == RttStat::RTT_TIMEOUT && rhs.first->rtt != RttStat::RTT_TIMEOUT) {
+      else if (lhs.first->getRttStats().getRtt() == RttStat::RTT_TIMEOUT && rhs.first->getRttStats().getRtt() != RttStat::RTT_TIMEOUT) {
         return false;
       }
       else {
-        return lhs.first->srtt < rhs.first->srtt;
+        return lhs.first->getRttStats().getSrtt() < rhs.first->getRttStats().getSrtt();
       }
   });
 
@@ -99,7 +99,7 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
     FaceInfo* info = m_measurements.getFaceInfo(*fibEntry, *hop.getFace());
 
     // If no RTT has been recorded, probe this face
-    if (info == nullptr || info->srtt == RttStat::RTT_NO_MEASUREMENT) {
+    if (info == nullptr || info->getRttStats().getSrtt() == RttStat::RTT_NO_MEASUREMENT) {
       return hop.getFace();
     }
 
@@ -321,7 +321,7 @@ AsfStrategy::forwardInterest(const Interest& interest,
 
   if (!faceInfo.isTimeoutScheduled()) {
     // Estimate and schedule timeout
-    RttEstimator::Duration timeout = faceInfo.rttEstimator.computeRto();
+    RttEstimator::Duration timeout = faceInfo.computeRto();
 
     NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << outFace->getId() <<
                   " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
@@ -403,7 +403,7 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
       rankedFaces.insert(stats);
     }
     else {
-      FaceStats stats = {hop.getFace(), info->rtt, info->srtt, hop.getCost()};
+      FaceStats stats = {hop.getFace(), info->getRttStats().getRtt(), info->getRttStats().getSrtt(), hop.getCost()};
       rankedFaces.insert(stats);
     }
   }
@@ -437,18 +437,8 @@ AsfStrategy::onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId)
     it = namespaceInfo->insert(faceId);
   }
 
-  FaceInfo& record = it->second;
-  record.rtt = RttStat::RTT_TIMEOUT;
-
-  // There should never be a timeout for an Interest that does not match
-  // FaceInfo.m_lastInterestName
-  if (record.isTimeoutScheduled() && record.doesNameMatchLastInterest(interestName)) {
-    record.cancelTimeoutEvent();
-  }
-  else {
-    throw std::runtime_error("Timeout for " + interestName.toUri() +
-      " does not match FaceInfo.m_lastInterest: " + record.getLastInterestName().toUri());
-  }
+  FaceInfo& faceInfo = it->second;
+  faceInfo.recordTimeout(interestName);
 }
 
 } // namespace fw

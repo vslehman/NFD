@@ -34,31 +34,58 @@
 namespace nfd {
 namespace fw {
 
+// TODO: Rename to RttStats
 class RttStat
 {
 public:
+  typedef double Rtt;
+
   RttStat()
-    : srtt(RTT_NO_MEASUREMENT)
-    , rtt(RTT_NO_MEASUREMENT)
+    : m_srtt(RTT_NO_MEASUREMENT)
+    , m_rtt(RTT_NO_MEASUREMENT)
   {
   }
 
-  typedef double Rtt;
+  void
+  addRttMeasurement(RttEstimator::Duration& durationRtt);
 
+  void
+  recordTimeout()
+  {
+    m_rtt = RTT_TIMEOUT;
+  }
+
+  Rtt
+  getRtt() const
+  {
+    return m_rtt;
+  }
+
+  Rtt
+  getSrtt() const
+  {
+    return m_srtt;
+  }
+
+  RttEstimator::Duration
+  computeRto() const
+  {
+    return m_rttEstimator.computeRto();
+  }
+
+private:
   static double
   computeSrtt(Rtt previousSrtt, Rtt currentRtt);
 
 public:
-  typedef time::microseconds Duration;
-
-  Rtt srtt;
-  Rtt rtt;
-  RttEstimator rttEstimator;
-
   static const Rtt RTT_TIMEOUT;
   static const Rtt RTT_NO_MEASUREMENT;
 
 private:
+  Rtt m_srtt;
+  Rtt m_rtt;
+  RttEstimator m_rttEstimator;
+
   static const double ALPHA;
 };
 
@@ -67,7 +94,7 @@ private:
 
 /** \brief Strategy information for each face in a namespace
 */
-class FaceInfo : public RttStat
+class FaceInfo
 {
 public:
   FaceInfo();
@@ -98,7 +125,21 @@ public:
   void
   recordRtt(const shared_ptr<pit::Entry> pitEntry, const Face& inFace);
 
-  typedef std::pair<nfd::face::FaceId, FaceInfo> Pair;
+  void
+  recordTimeout(const ndn::Name& interestName);
+
+  const RttStat&
+  getRttStats() const
+  {
+    return m_rttStat;
+  }
+
+  RttEstimator::Duration
+  computeRto() const
+  {
+    return m_rttStat.computeRto();
+  }
+
   typedef std::unordered_map<nfd::face::FaceId, FaceInfo> Table;
 
 public:
@@ -108,6 +149,7 @@ public:
   static const time::seconds MEASUREMENT_LIFETIME;
 
 private:
+  RttStat m_rttStat;
   ndn::Name m_lastInterestName;
 
   // Timeout associated with Interest
@@ -180,7 +222,7 @@ private:
   FaceInfo::Table m_fit;
 };
 
-/** \brief Helper class to retrieve and create measurements
+/** \brief Helper class to retrieve and create strategy measurements
  */
 class AsfMeasurements
 {
