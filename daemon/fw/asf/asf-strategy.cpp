@@ -25,9 +25,8 @@
 
 #include "asf-strategy.hpp"
 
-#include "asf-measurements.hpp"
-#include "random.hpp"
 #include "core/logger.hpp"
+#include "random.hpp"
 
 #include <boost/random/uniform_real_distribution.hpp>
 
@@ -48,8 +47,7 @@ AsfStrategy::ProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
 {
   ndn::Name prefix = fibEntry->getPrefix();
 
-  // Set the probing flag for the namespace to true after PROBING_INTERVAL
-  // period of time
+  // Set the probing flag for the namespace to true after passed interval of time
   scheduler::schedule(interval, [this, prefix] () {
     shared_ptr<NamespaceInfo> info = m_measurements.getNamespaceInfo(prefix);
 
@@ -70,41 +68,43 @@ AsfStrategy::ProbingModule::getFaceToProbe(const Face& inFace,
                                            const Face& faceUsed)
 {
   FaceInfoFacePairSet rankedFaces(
-    [] (FaceInfoFacePair lhs, FaceInfoFacePair rhs) -> bool {
+    [] (FaceInfoFacePair pairLhs, FaceInfoFacePair pairRhs) -> bool {
       // Sort by RTT
       // If a face has timed-out, rank it behind non-timed-out faces
-      if (lhs.first->getRtt() != RttStats::RTT_TIMEOUT && rhs.first->getRtt() == RttStats::RTT_TIMEOUT) {
+      FaceInfo& lhs = *pairLhs.first;
+      FaceInfo& rhs = *pairRhs.first;
+
+      if (lhs.getRtt() != RttStats::RTT_TIMEOUT && rhs.getRtt() == RttStats::RTT_TIMEOUT) {
         return true;
       }
-      else if (lhs.first->getRtt() == RttStats::RTT_TIMEOUT && rhs.first->getRtt() != RttStats::RTT_TIMEOUT) {
+      else if (lhs.getRtt() == RttStats::RTT_TIMEOUT && rhs.getRtt() != RttStats::RTT_TIMEOUT) {
         return false;
       }
       else {
-        return lhs.first->getSrtt() < rhs.first->getSrtt();
+        return lhs.getSrtt() < rhs.getSrtt();
       }
   });
 
   // Put eligible faces into rankedFaces. If a face does not have an RTT measurement,
-  // pick the face for probing immediately
+  // immediately pick the face for probing
   for (const fib::NextHop& hop : fibEntry->getNextHops()) {
+    const shared_ptr<Face>& hopFace = hop.getFace();
 
     // Don't send probe Interest back to the incoming face or use the same face
     // as the forwarded Interest
-    if (hop.getFace()->getId() == inFace.getId() ||
-        hop.getFace()->getId() == faceUsed.getId())
-    {
+    if (hopFace->getId() == inFace.getId() || hopFace->getId() == faceUsed.getId()) {
       continue;
     }
 
-    FaceInfo* info = m_measurements.getFaceInfo(*fibEntry, *hop.getFace());
+    FaceInfo* info = m_measurements.getFaceInfo(*fibEntry, *hopFace);
 
     // If no RTT has been recorded, probe this face
     if (info == nullptr || info->getSrtt() == RttStats::RTT_NO_MEASUREMENT) {
-      return hop.getFace();
+      return hopFace;
     }
 
     // Add FaceInfo to container sorted by RTT
-    rankedFaces.insert(std::make_pair(make_shared<FaceInfo>(*info), hop.getFace()));
+    rankedFaces.insert(std::make_pair(info, hopFace));
   }
 
   if (rankedFaces.empty()) {
@@ -148,14 +148,13 @@ shared_ptr<Face>
 AsfStrategy::ProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet& rankedFaces)
 {
   double randomNumber = getRandomNumber(0, 1);
-  uint64_t rankSum = ((rankedFaces.size() + 1) * (rankedFaces.size())) / 2;
+  uint64_t rankSum = ((rankedFaces.size() + 1) * rankedFaces.size()) / 2;
 
   uint64_t rank = 1;
   double offset = 0;
 
   for (const FaceInfoFacePair pair : rankedFaces) {
     double probability = getProbingProbability(rank++, rankSum, rankedFaces.size());
-    //NFD_LOG_TRACE("probability: " << probability << " for FaceId: " << pair.second->getId());
 
     // Is the random number within the bounds of this face's probability + the previous faces'
     // probability?
@@ -243,12 +242,6 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
     this->rejectPendingInterest(pitEntry);
     return;
   }
-  else if (nexthops.size() == 1 && nexthops.front().getFace()->getId() == inFace.getId()) {
-    // If the only nexthop that exists is the one the Interest was received on, reject
-    NFD_LOG_TRACE("Reject pending Interest: inFace is the only nexthop for " << fibEntry->getPrefix());
-    this->rejectPendingInterest(pitEntry);
-    return;
-  }
 
   const shared_ptr<Face> faceToUse = getBestFaceForForwarding(*fibEntry, inFace);
 
@@ -268,7 +261,8 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
       NFD_LOG_TRACE("Sending probe for " << fibEntry->getPrefix()
                                          << " to FaceId: " << faceToProbe->getId());
 
-      forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, true);
+      bool wantNewNonce = true;
+      forwardInterest(interest, *fibEntry, pitEntry, faceToProbe, wantNewNonce);
       m_probing.afterForwardingProbe(fibEntry);
     }
   }
@@ -286,15 +280,13 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
     return;
   }
 
-  // Get info associated with the face
+  // Record the RTT between the Interest out to Data in
   FaceInfo& faceInfo = namespaceInfo->get(inFace.getId());
-
   faceInfo.recordRtt(pitEntry, inFace);
-
-  // Extend lifetime for measurements associated with face
-  namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
-
   faceInfo.cancelTimeoutEvent(data.getName());
+
+  // Extend lifetime for measurements associated with Face
+  namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -319,8 +311,9 @@ AsfStrategy::forwardInterest(const Interest& interest,
     // Estimate and schedule timeout
     RttEstimator::Duration timeout = faceInfo.computeRto();
 
-    NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix() << " FaceId: " << outFace->getId() <<
-                  " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
+    NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix()
+                                            << " FaceId: " << outFace->getId()
+                                            << " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
 
     scheduler::EventId id = scheduler::schedule(timeout,
         bind(&AsfStrategy::onTimeout, this, interest.getName(), outFace->getId()));
@@ -360,7 +353,7 @@ getValueForSorting(const FaceStats& stats)
 const shared_ptr<Face>
 AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& inFace)
 {
-  NFD_LOG_INFO("Looking for best face for " << fibEntry.getPrefix());
+  NFD_LOG_TRACE("Looking for best face for " << fibEntry.getPrefix());
 
   typedef std::function<bool(const FaceStats&, const FaceStats&)> FaceStatsPredicate;
   typedef std::set<FaceStats, FaceStatsPredicate> FaceStatsSet;
@@ -384,14 +377,16 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
 
   for (const fib::NextHop& hop : fibEntry.getNextHops()) {
 
-    if (hop.getFace()->getId() == inFace.getId()) {
+    const shared_ptr<Face>& hopFace = hop.getFace();
+
+    if (hopFace->getId() == inFace.getId()) {
       continue;
     }
 
-    FaceInfo* info = m_measurements.getFaceInfo(fibEntry, *hop.getFace());
+    FaceInfo* info = m_measurements.getFaceInfo(fibEntry, *hopFace);
 
     if (info == nullptr) {
-      FaceStats stats = {hop.getFace(),
+      FaceStats stats = {hopFace,
                          RttStats::RTT_NO_MEASUREMENT,
                          RttStats::RTT_NO_MEASUREMENT,
                          hop.getCost()};
@@ -399,7 +394,7 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
       rankedFaces.insert(stats);
     }
     else {
-      FaceStats stats = {hop.getFace(), info->getRtt(), info->getSrtt(), hop.getCost()};
+      FaceStats stats = {hopFace, info->getRtt(), info->getSrtt(), hop.getCost()};
       rankedFaces.insert(stats);
     }
   }
@@ -410,20 +405,19 @@ AsfStrategy::getBestFaceForForwarding(const fib::Entry& fibEntry, const Face& in
     return it->face;
   }
   else {
-    NFD_LOG_WARN("Could not find best face to forward " << fibEntry.getPrefix());
-    throw std::runtime_error("Could not find best face to forward " + fibEntry.getPrefix().toUri());
+    return nullptr;
   }
 }
 
 void
 AsfStrategy::onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId)
 {
-  NFD_LOG_INFO("FaceId: " << faceId << " for " << interestName << " has timed-out");
+  NFD_LOG_TRACE("FaceId: " << faceId << " for " << interestName << " has timed-out");
 
   shared_ptr<NamespaceInfo> namespaceInfo = m_measurements.getNamespaceInfo(interestName);
 
   if (namespaceInfo == nullptr) {
-    NFD_LOG_DEBUG("FibEntry for " << interestName << " was removed");
+    NFD_LOG_TRACE("FibEntry for " << interestName << " has been removed since timeout scheduling");
     return;
   }
 

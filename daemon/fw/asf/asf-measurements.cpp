@@ -194,7 +194,6 @@ FaceInfo*
 AsfMeasurements::getFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
   NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
-
   return info.getFaceInfo(fibEntry, face);
 }
 
@@ -202,7 +201,6 @@ FaceInfo&
 AsfMeasurements::getOrCreateFaceInfo(const fib::Entry& fibEntry, const Face& face)
 {
   NamespaceInfo& info = getOrCreateNamespaceInfo(fibEntry);
-
   return info.getOrCreateFaceInfo(fibEntry, face);
 }
 

@@ -33,8 +33,6 @@
 namespace nfd {
 namespace fw {
 
-class FaceInfo;
-
 /** \brief Adaptive SRTT-based Forwarding Strategy
  */
 class AsfStrategy : public Strategy
@@ -111,7 +109,7 @@ private:
 
   private:
     // Used to associate FaceInfo with the face in a NextHop
-    typedef std::pair<shared_ptr<FaceInfo>, shared_ptr<Face>> FaceInfoFacePair;
+    typedef std::pair<FaceInfo*, shared_ptr<Face>> FaceInfoFacePair;
     typedef std::function<bool(FaceInfoFacePair, FaceInfoFacePair)> FaceInfoPredicate;
     typedef std::set<FaceInfoFacePair, FaceInfoPredicate> FaceInfoFacePairSet;
 
