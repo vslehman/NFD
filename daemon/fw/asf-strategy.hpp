@@ -94,18 +94,6 @@ private:
                    shared_ptr<fib::Entry> fibEntry,
                    const Face& faceUsed);
 
-    void
-    setProbingInterval(uint32_t interval)
-    {
-      m_probingInterval = time::seconds(interval);
-    }
-
-    const time::seconds&
-    getProbingInterval() const
-    {
-      return m_probingInterval;
-    }
-
     bool
     isProbingNeeded(shared_ptr<fib::Entry> fibEntry);
 

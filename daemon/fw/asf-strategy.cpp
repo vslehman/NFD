@@ -141,7 +141,7 @@ AsfStrategy::ProbingModule::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry
   NamespaceInfo& info = m_measurements.getOrCreateNamespaceInfo(*fibEntry);
   info.setIsProbingDue(false);
 
-  scheduleProbe(fibEntry, getProbingInterval());
+  scheduleProbe(fibEntry, m_probingInterval);
 }
 
 shared_ptr<Face>
