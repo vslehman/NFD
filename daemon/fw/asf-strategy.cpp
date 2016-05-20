@@ -283,7 +283,10 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
   // Record the RTT between the Interest out to Data in
   FaceInfo& faceInfo = namespaceInfo->get(inFace.getId());
   faceInfo.recordRtt(pitEntry, inFace);
-  faceInfo.cancelTimeoutEvent(data.getName());
+
+  if (faceInfo.isTimeoutScheduled()) {
+    faceInfo.cancelTimeoutEvent(data.getName());
+  }
 
   // Extend lifetime for measurements associated with Face
   namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
@@ -311,7 +314,7 @@ AsfStrategy::forwardInterest(const Interest& interest,
     // Estimate and schedule timeout
     RttEstimator::Duration timeout = faceInfo.computeRto();
 
-    NFD_LOG_DEBUG("Scheduling timeout for " << fibEntry.getPrefix()
+    NFD_LOG_TRACE("Scheduling timeout for " << fibEntry.getPrefix()
                                             << " FaceId: " << outFace->getId()
                                             << " in " << time::duration_cast<time::milliseconds>(timeout) << " ms");
 
