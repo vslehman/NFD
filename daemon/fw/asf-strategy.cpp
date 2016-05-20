@@ -25,8 +25,8 @@
 
 #include "asf-strategy.hpp"
 
-#include "core/logger.hpp"
 #include "random.hpp"
+#include "core/logger.hpp"
 
 #include <boost/random/uniform_real_distribution.hpp>
 
@@ -165,7 +165,7 @@ AsfStrategy::ProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet&
     //      The face with FaceId: 3 should be picked
     //      (0.68 < 0.5 + 0.33 + 0.17) == true
     //
-    if (randomNumber < offset + probability) {
+    if (randomNumber <= offset + probability) {
       // Found face to probe
       return pair.second;
     }
@@ -173,7 +173,8 @@ AsfStrategy::ProbingModule::getFaceBasedOnProbability(const FaceInfoFacePairSet&
     offset += probability;
   }
 
-  throw std::runtime_error("Unable to find face to probe using probability!");
+  // Given a set of Faces, this method should always select a Face to probe
+  BOOST_ASSERT(false);
 }
 
 double
