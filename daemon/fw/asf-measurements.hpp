@@ -177,8 +177,8 @@ class NamespaceInfo : public StrategyInfo
 {
 public:
   NamespaceInfo()
-    : isProbingNeeded(false)
-    , hasFirstProbeBeenScheduled(false)
+    : m_isProbingDue(false)
+    , m_hasFirstProbeBeenScheduled(false)
   {
   }
 
@@ -225,12 +225,35 @@ public:
     return pair.first;
   }
 
-public:
-  bool isProbingNeeded;
-  bool hasFirstProbeBeenScheduled;
+  bool
+  isProbingDue() const
+  {
+    return m_isProbingDue;
+  }
+
+  void
+  setIsProbingDue(bool isProbingDue)
+  {
+    m_isProbingDue = isProbingDue;
+  }
+
+  bool
+  hasFirstProbeBeenScheduled() const
+  {
+    return m_hasFirstProbeBeenScheduled;
+  }
+
+  void
+  setHasFirstProbeBeenScheduled(bool hasBeenScheduled)
+  {
+    m_hasFirstProbeBeenScheduled = hasBeenScheduled;
+  }
 
 private:
   FaceInfo::Table m_fit;
+
+  bool m_isProbingDue;
+  bool m_hasFirstProbeBeenScheduled;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

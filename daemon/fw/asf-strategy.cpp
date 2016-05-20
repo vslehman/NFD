@@ -56,7 +56,7 @@ AsfStrategy::ProbingModule::scheduleProbe(shared_ptr<fib::Entry> fibEntry,
       return;
     }
     else {
-      info->isProbingNeeded = true;
+      info->setIsProbingDue(true);
     }
   });
 }
@@ -122,15 +122,15 @@ AsfStrategy::ProbingModule::isProbingNeeded(shared_ptr<fib::Entry> fibEntry)
   NamespaceInfo& info = m_measurements.getOrCreateNamespaceInfo(*fibEntry);
 
   // If a first probe has not been scheduled for a namespace
-  if (!info.hasFirstProbeBeenScheduled) {
+  if (!info.hasFirstProbeBeenScheduled()) {
     // Schedule first probe between 0 and 5 seconds
     uint64_t interval = getRandomNumber(0, 5000);
     scheduleProbe(fibEntry, time::milliseconds(interval));
 
-    info.hasFirstProbeBeenScheduled = true;
+    info.setHasFirstProbeBeenScheduled(true);
   }
 
-  return info.isProbingNeeded;
+  return info.isProbingDue();
 }
 
 void
@@ -139,7 +139,7 @@ AsfStrategy::ProbingModule::afterForwardingProbe(shared_ptr<fib::Entry> fibEntry
   // After probing is done, need to set probing flag to false and
   // schedule another future probe
   NamespaceInfo& info = m_measurements.getOrCreateNamespaceInfo(*fibEntry);
-  info.isProbingNeeded = false;
+  info.setIsProbingDue(false);
 
   scheduleProbe(fibEntry, getProbingInterval());
 }
