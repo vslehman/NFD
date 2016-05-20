@@ -112,7 +112,6 @@ private:
     double
     getProbingProbability(uint64_t rank, uint64_t rankSum, uint64_t nFaces);
 
-  PUBLIC_WITH_TESTS_ELSE_PROTECTED:
     double
     getRandomNumber(double start, double end);
 
