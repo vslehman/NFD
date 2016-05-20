@@ -73,8 +73,10 @@ private:
   void
   onTimeout(const ndn::Name& interestName, nfd::face::FaceId faceId);
 
+public:
+  static const Name STRATEGY_NAME;
+
 private:
-  RetxSuppressionExponential m_retxSuppression;
   AsfMeasurements m_measurements;
 
 private:
@@ -124,8 +126,9 @@ private:
 
   ProbingModule m_probing;
 
-public:
-  static const Name STRATEGY_NAME;
+private:
+  RetxSuppressionExponential m_retxSuppression;
+
   static const time::milliseconds RETX_SUPPRESSION_INITIAL;
   static const time::milliseconds RETX_SUPPRESSION_MAX;
 };

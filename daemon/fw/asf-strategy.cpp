@@ -205,11 +205,11 @@ NFD_REGISTER_STRATEGY(AsfStrategy);
 
 AsfStrategy::AsfStrategy(Forwarder& forwarder, const Name& name)
   : Strategy(forwarder, name)
+  , m_measurements(getMeasurements())
+  , m_probing(m_measurements)
   , m_retxSuppression(RETX_SUPPRESSION_INITIAL,
                       RetxSuppressionExponential::DEFAULT_MULTIPLIER,
                       RETX_SUPPRESSION_MAX)
-  , m_measurements(getMeasurements())
-  , m_probing(m_measurements)
 {
 }
 
