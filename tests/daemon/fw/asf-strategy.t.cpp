@@ -94,7 +94,7 @@ BOOST_FIXTURE_TEST_CASE(Basic, TwoLaptopsFixture)
 {
   topo.registerPrefix(laptopA, linkA->getFace(laptopA), "ndn:/hr/B", 10);
   topo.registerPrefix(laptopA, linkC->getFace(laptopA), "ndn:/hr/B", 5);
-  linkD->setDelay(time::milliseconds(77));
+
   topo.registerPrefix(router1, linkB->getFace(router1), "ndn:/hr/B");
 
   topo.registerPrefix(router2, linkD->getFace(router2), "ndn:/hr/B");
@@ -151,6 +151,32 @@ BOOST_FIXTURE_TEST_CASE(Basic, TwoLaptopsFixture)
   BOOST_CHECK_EQUAL(consumer->getForwarderFace().getCounters().nOutData, 89);
   BOOST_CHECK_LE(linkA->getFace(laptopA).getCounters().nOutInterests, 60);
   BOOST_CHECK_GE(linkC->getFace(laptopA).getCounters().nOutInterests, 60);
+}
+
+BOOST_FIXTURE_TEST_CASE(Nack, TwoLaptopsFixture)
+{
+  topo.registerPrefix(laptopA, linkA->getFace(laptopA), "ndn:/hr/B", 10);
+  topo.registerPrefix(laptopA, linkC->getFace(laptopA), "ndn:/hr/B", 5);
+
+  topo.registerPrefix(router1, linkB->getFace(router1), "ndn:/hr/B");
+
+  shared_ptr<TopologyAppLink> consumer = topo.addAppFace("c", laptopA);
+  topo.addIntervalConsumer(consumer->getClientFace(), "ndn:/hr/B", time::seconds(1), 30);
+
+  shared_ptr<TopologyAppLink> producer = topo.addAppFace("p", laptopB, "ndn:/hr/B");
+  topo.addEchoProducer(producer->getClientFace());
+
+  // The strategy should first try to send to Router2. But since Router1 does not have a route for
+  // /hr/B, it should return a NO_ROUTE Nack. The strategy should then start using the Face to
+  // router1.
+  this->advanceClocks(time::milliseconds(10), time::seconds(30));
+
+  BOOST_CHECK_EQUAL(consumer->getForwarderFace().getCounters().nOutData, 29);
+  BOOST_CHECK_EQUAL(linkA->getFace(laptopA).getCounters().nOutInterests, 29);
+
+  // Router2 should receive 2 Interests: one for the very first Interest and
+  // another from a probe
+  BOOST_CHECK_EQUAL(linkC->getFace(laptopA).getCounters().nOutInterests, 2);
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestAsfStrategy

@@ -238,7 +238,12 @@ AsfStrategy::afterReceiveInterest(const Face& inFace,
   const fib::NextHopList& nexthops = fibEntry->getNextHops();
 
   if (nexthops.size() == 0) {
-    NFD_LOG_TRACE("Reject pending Interest: No next hops for " << fibEntry->getPrefix());
+    NFD_LOG_DEBUG(interest << " from=" << inFace.getId() << " noNextHop");
+
+    lp::NackHeader nackHeader;
+    nackHeader.setReason(lp::NackReason::NO_ROUTE);
+    this->sendNack(pitEntry, inFace, nackHeader);
+
     this->rejectPendingInterest(pitEntry);
     return;
   }
@@ -290,6 +295,15 @@ AsfStrategy::beforeSatisfyInterest(shared_ptr<pit::Entry> pitEntry,
 
   // Extend lifetime for measurements associated with Face
   namespaceInfo->extendFaceInfoLifetime(faceInfo, inFace);
+}
+
+void
+AsfStrategy::afterReceiveNack(const Face& inFace, const lp::Nack& nack,
+                              shared_ptr<fib::Entry> fibEntry,
+                              shared_ptr<pit::Entry> pitEntry)
+{
+  NFD_LOG_DEBUG("Nack for " << nack.getInterest() << " from=" << inFace.getId() << ": " << nack.getReason());
+  onTimeout(pitEntry->getName(), inFace.getId());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

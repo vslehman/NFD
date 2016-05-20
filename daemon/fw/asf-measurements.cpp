@@ -94,10 +94,6 @@ FaceInfo::cancelTimeoutEvent(const ndn::Name& prefix)
   if (isTimeoutScheduled() && doesNameMatchLastInterest(prefix)) {
     cancelTimeoutEvent();
   }
-  else {
-    throw std::runtime_error("Timeout for " + prefix.toUri() +
-      " does not match FaceInfo.m_lastInterest: " + m_lastInterestName.toUri());
-  }
 }
 
 bool
